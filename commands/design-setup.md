@@ -23,8 +23,9 @@ Check if Puppeteer MCP is available by attempting to list available MCP tools. I
 
 > Puppeteer MCP is required for screenshot verification. Install it by running:
 > ```
-> claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude
+> claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude serve
 > ```
+> **Important:** The `serve` subcommand is required. Without it, the process prints help text and exits, which causes "Failed to connect" errors.
 > Then restart Claude Code and run /design-setup again.
 
 ### iOS Simulator MCP (if platform is iOS or Cross-platform)
@@ -65,6 +66,36 @@ Read the template from `~/projects/claude-design-toolkit/templates/project-desig
 - `{{PROJECT_NAME}}` — the project name from Step 1
 
 Write the filled template to `.claude/commands/<ProjectName>_Design.md` in the project directory (create the `.claude/commands/` directory if it doesn't exist).
+
+### 3e. Install Validation Hook
+Copy the validation hook from `~/projects/claude-design-toolkit/templates/hooks/validate-design-files.sh` into the project's `.claude/hooks/` directory. Make it executable.
+
+Then add the hook configuration to the project's `.claude/settings.local.json`. If the file already exists, merge the hooks into the existing config. The hook config should be:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "<absolute-path-to-project>/.claude/hooks/validate-design-files.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+This automatically validates SVG files (XML parse) and HTML files (basic parse) after every edit, catching malformed markup before it causes problems.
+
+### 3f. File Protocol Guidance (HTML workbench projects only)
+If the user selected "HTML workbench" as prototype format, add this note to the project's CLAUDE.md:
+
+> **file:// Protocol Constraints:** The workbench must open by double-clicking (file:// protocol). Standard `<script src="file.js">` and `<link href="styles.css">` tags work fine from file://. JavaScript `fetch()` does NOT work from file://. Never use fetch() to load local assets — use HTML tags instead.
 
 ## Step 4: Report
 

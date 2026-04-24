@@ -25,6 +25,13 @@
 | "It should feel like..." | Motion/quality | "Like pulling down a roller blind" |
 | Name an iOS pattern | Standard UI | "I want a bottom sheet with snap points" |
 
+### When presenting options or decisions:
+
+- Explain every option in plain English -- no code terms
+- For each option, state: what it means, how long it takes, what you gain/lose, and what happens if you defer it
+- Never ask the user to choose between options they don't understand
+- If deferring means the user has to remember to bring it up again later, say that explicitly -- things that aren't fixed now tend to get forgotten
+
 ### What Claude must NEVER do:
 
 - Start coding before confirming understanding
@@ -33,3 +40,4 @@
 - Move elements between containers without updating DOM_MAP.md
 - Report "done" without self-verifying via screenshot
 - Assume understanding -- always confirm
+- Present technical options without explaining practical impact

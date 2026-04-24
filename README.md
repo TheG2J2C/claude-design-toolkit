@@ -9,11 +9,15 @@ A portable toolkit that gives Claude Code the skills, commands, and templates ne
 - **iOS translation gap**: Claude doesn't know which CSS patterns translate to SwiftUI and which are dead ends. IOS_COMPAT.md maps every pattern.
 - **Premature coding**: Claude jumps to implementation without confirming understanding. The Design Protocol requires plain-English confirmation first.
 - **Cascading breakage**: Claude makes multiple changes at once and breaks things. The workflow enforces one structural change at a time.
+- **Jargon decisions**: Claude presents technical options without explaining practical impact. The toolkit enforces plain-English pros/cons on every decision.
+- **Silent breakage**: Claude edits SVG/HTML and introduces malformed markup. The validation hook catches parse errors immediately after every edit.
 
 ## Prerequisites
 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and working
 - Node.js (required for Puppeteer MCP)
+- Python 3 (required for validation hook)
+- jq (required for validation hook — `brew install jq`)
 - For iOS projects: Xcode with Simulator
 
 ## Installation
@@ -25,13 +29,14 @@ cd ~/projects/claude-design-toolkit
 ```
 
 This installs:
-- `/design-setup` slash command into `~/.claude/commands/`
-- `design-edit` and `design-verify` skills into `~/.claude/skills/`
+- `/design-setup` slash command into `~/.claude/commands/` (symlinked — auto-updates)
+- `design-edit` and `design-verify` skills into `~/.claude/skills/` (copied — re-run install.sh to update)
 
 Then install the required MCP servers in Claude Code:
 
 ```bash
-claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude
+# The `serve` subcommand is required — without it the process prints help and exits
+claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude serve
 ```
 
 For iOS projects:
@@ -45,7 +50,7 @@ claude mcp add ios-simulator -- npx ios-simulator-mcp
 1. Open your project in Claude Code
 2. Run `/design-setup`
 3. Answer the setup questions (project name, platform, tech stack, etc.)
-4. The command creates project-specific files: DOM_MAP.md, IOS_COMPAT.md, a design command, and appends the Design Protocol to your CLAUDE.md
+4. The command creates project-specific files: DOM_MAP.md, IOS_COMPAT.md, a design command, a validation hook, and appends the Design Protocol to your CLAUDE.md
 5. Start designing with the enforced workflow
 
 ## What Each File Does
@@ -54,14 +59,14 @@ claude mcp add ios-simulator -- npx ios-simulator-mcp
 
 | File | Purpose |
 |------|---------|
-| `commands/design-setup.md` | Slash command that configures a project for design work. Creates all project-specific files and checks MCP dependencies. |
+| `commands/design-setup.md` | Slash command that configures a project for design work. Creates all project-specific files, installs the validation hook, and checks MCP dependencies. |
 
 ### Skills
 
 | File | Purpose |
 |------|---------|
-| `skills/design-edit.md` | Enforces a strict workflow before any CSS/HTML/UI edit: read DOM map, trace containers, screenshot before/after, confirm with user, one change at a time. |
-| `skills/design-verify.md` | Post-edit verification: screenshot, check DOM map accuracy, check iOS compatibility, update documentation. |
+| `skills/design-edit.md` | Enforces a strict workflow before any CSS/HTML/UI edit: read DOM map, trace containers, screenshot before/after, confirm with user, one change at a time. Includes rules for presenting options in plain English. |
+| `skills/design-verify.md` | Post-edit verification: screenshot, check DOM map accuracy, check iOS compatibility, update documentation. Includes rules for suggesting improvements clearly. |
 
 ### Templates
 
@@ -69,8 +74,9 @@ claude mcp add ios-simulator -- npx ios-simulator-mcp
 |------|---------|
 | `templates/DOM_MAP.md` | Template for tracking the DOM hierarchy, stacking contexts, z-index scale, and overflow boundaries. The structural truth of the page. |
 | `templates/IOS_COMPAT.md` | Maps HTML/CSS patterns to SwiftUI equivalents. Prevents using CSS tricks that have no iOS translation. |
-| `templates/DESIGN_PROTOCOL.md` | Rules appended to a project's CLAUDE.md that enforce confirmation-before-coding, one-change-at-a-time, and proper design communication. |
+| `templates/DESIGN_PROTOCOL.md` | Rules appended to a project's CLAUDE.md that enforce confirmation-before-coding, one-change-at-a-time, plain-English decisions, and proper design communication. |
 | `templates/project-design-command.md` | Template for per-project design resume commands. Filled in by /design-setup with project-specific values. |
+| `templates/hooks/validate-design-files.sh` | PostToolUse hook that validates SVG (XML parse) and HTML after every Edit/Write. Catches malformed markup immediately. |
 
 ## The Workflow It Enforces
 
@@ -99,6 +105,9 @@ User confirms  <-- GATE: no code until confirmed
 Claude makes ONE change
     |
     v
+Validation hook checks SVG/HTML is valid  <-- AUTOMATIC
+    |
+    v
 Claude screenshots the new state
     |
     v
@@ -112,8 +121,17 @@ If correct: update DOM_MAP.md if structure changed
 Claude checks IOS_COMPAT.md (if iOS project)
     |
     v
-Done
+Done — report in plain English with any follow-up options clearly explained
 ```
+
+## file:// Protocol (HTML Workbench Projects)
+
+HTML workbench files are opened by double-clicking in Finder, which uses the `file://` protocol. This has one important constraint:
+
+- **Works from file://**: `<script src="file.js">`, `<link href="styles.css">`, `<img src="image.svg">` — standard HTML tags load local files fine.
+- **Does NOT work from file://**: JavaScript `fetch()` — the browser blocks it for security reasons.
+
+This means you can split a workbench into multiple files (HTML + CSS + JS) using normal HTML tags. You do NOT need a local server for this. Never use `fetch()` to load local assets.
 
 ## Portability
 
@@ -145,13 +163,18 @@ The install script symlinks the command and copies skills, so updates to the too
 
 ### Puppeteer MCP not connecting
 
+The most common cause is a missing `serve` subcommand:
+
 ```bash
-# Check it's installed
+# Check current config
 claude mcp list
 
-# Reinstall if needed
-claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude
+# Remove and re-add with the correct command
+claude mcp remove puppeteer-mcp-claude
+claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude serve
 ```
+
+**Note:** After changing MCP config, restart Claude Code for it to take effect.
 
 ### Screenshots failing for file:// URLs
 
@@ -159,6 +182,13 @@ Puppeteer needs the full absolute path:
 ```
 file:///Users/you/projects/myproject/index.html
 ```
+
+### Validation hook not firing
+
+Check that:
+1. The hook script exists at `.claude/hooks/validate-design-files.sh` and is executable (`chmod +x`)
+2. The `PostToolUse` config is in `.claude/settings.local.json` with the correct absolute path
+3. `jq` and `python3` are installed
 
 ### /design-setup not appearing
 

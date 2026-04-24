@@ -39,6 +39,14 @@ Change complete:
 If verification reveals a problem:
 
 1. Do NOT report "done"
-2. Describe the discrepancy to the user
-3. Propose a fix or rollback
+2. Describe the discrepancy to the user in plain English — what you expected vs what happened
+3. Propose a fix or rollback — explain each option with pros/cons and effort level (see "Presenting Options" in design-edit skill)
 4. Wait for user direction
+
+## Suggesting Improvements
+
+If during verification you notice something that could be improved (performance, structure, maintainability), present it clearly:
+- What the improvement is, in plain English
+- How long it would take
+- What happens if you do it now vs later (e.g. "quick fix now" vs "you'd need to save this to memory and bring it up in a future session, which means it might get forgotten")
+- Let the user decide — don't assume they want it done
