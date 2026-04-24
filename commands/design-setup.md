@@ -88,4 +88,9 @@ Next steps:
   - Run /[ProjectName]_Design to start a design session
   - Populate DOM_MAP.md with your actual page structure
   - Review IOS_COMPAT.md before implementing interactions [if iOS]
+
+Toolkit sync:
+  - At natural breakpoints, review learnings from this project
+  - Suggest upstreaming universal improvements to claude-design-toolkit repo
+  - The toolkit grows from real project experience — every project makes the next one better
 ```

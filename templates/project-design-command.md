@@ -27,6 +27,13 @@ Present a brief summary of:
 5. **Check IOS_COMPAT.md** -- don't use patterns that won't translate
 6. **Update DOM_MAP.md** after any structural DOM change
 
-## 6. Ready
+## 6. Toolkit Sync Check
+At natural breakpoints (end of feature, checkpoint, or ~2 hours of work), review:
+- New rules, skills, or workflow patterns discovered in this project
+- Improvements to DOM_MAP notation, iOS compat findings, or communication techniques
+- Mistakes made and lessons learned that should become universal rules
+Suggest upstreaming anything universal to the claude-design-toolkit repo (~/projects/claude-design-toolkit). Ask user before pushing.
+
+## 7. Ready
 - Present status
 - Ask what the user wants to work on
