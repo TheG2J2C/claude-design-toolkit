@@ -26,6 +26,18 @@ These rules are non-negotiable. Violating any of them requires stopping and reas
 - **Never** change `z-index` without checking all siblings at the same stacking level and confirming the new ordering is correct.
 - **Never** combine repositioning with restyling. One structural change at a time.
 - **Never** change `position` values (static/relative/absolute/fixed) without understanding the full impact on the element's children and siblings.
+- **Never** change a LOCKED value (marked ⚠️ LOCKED in DOM_MAP.md) unless the user explicitly requests it. If your change moves a locked element, you made a mistake — revert immediately.
+- **Never** adjust siblings of locked elements using `margin` or `padding` — use `transform: translateX/Y()` instead, which moves visually without affecting layout flow.
+
+## Replacing UI Patterns
+
+When a design changes and you're replacing one pattern with another:
+
+1. **List every element** from the OLD pattern — CSS rules, pseudo-elements (::before/::after), SVG backgrounds, inline styles, HTML nodes
+2. **For each element**, decide: remove, repurpose, or keep
+3. **Ask the user** before removing anything — they may want to keep parts of the old design
+4. **After replacing**, verify no ghost elements remain — old backgrounds showing through, orphaned pseudo-elements, unused CSS rules
+5. **Clean up unused imports/elements** — if SVG backgrounds, fonts, or scripts are no longer referenced, ask the user if they can be removed
 
 ## Presenting Options to the User
 

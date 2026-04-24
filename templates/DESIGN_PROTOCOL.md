@@ -32,6 +32,23 @@
 - Never ask the user to choose between options they don't understand
 - If deferring means the user has to remember to bring it up again later, say that explicitly -- things that aren't fixed now tend to get forgotten
 
+### Locked Elements
+
+When the user confirms a position, size, or spacing with words like "perfect", "lock it in", "done" — that value is **LOCKED**.
+
+- Mark locked values with ⚠️ LOCKED in DOM_MAP.md and the design command
+- **Never** change a locked value unless the user explicitly requests it
+- If a change you make causes a locked element to move, **you made a mistake** — revert immediately
+- To adjust elements near locked ones, use `transform` (translateX/Y) which moves visually without affecting layout. Never use `margin`/`padding` changes on siblings of locked elements.
+
+### Import & Element Tracking
+
+When replacing or redesigning a UI pattern:
+- **List every element** from the old pattern (CSS rules, pseudo-elements, SVG backgrounds, HTML nodes)
+- **Confirm each is removed or repurposed** — don't leave ghost elements behind
+- **Ask the user** before deleting anything that might still be needed
+- Old elements left behind create invisible bugs that are extremely hard to spot
+
 ### What Claude must NEVER do:
 
 - Start coding before confirming understanding
@@ -41,3 +58,4 @@
 - Report "done" without self-verifying via screenshot
 - Assume understanding -- always confirm
 - Present technical options without explaining practical impact
+- Move or resize a LOCKED element without explicit user request

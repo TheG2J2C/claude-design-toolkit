@@ -22,10 +22,13 @@ Present a brief summary of:
 ## 5. Rules (always follow)
 1. **Confirm understanding** before coding -- repeat back in plain English
 2. **Check DOM_MAP.md** before any structural change
-3. **Screenshot before and after** every change (Puppeteer MCP)
+3. **Screenshot before and after** every change (Puppeteer MCP) — unless user is giving rapid instructions, then batch at pauses
 4. **One change at a time** -- never combine structural and styling changes
 5. **Check IOS_COMPAT.md** -- don't use patterns that won't translate
 6. **Update DOM_MAP.md** after any structural DOM change
+7. **Respect LOCKED values** (⚠️ LOCKED in DOM_MAP) -- never change unless user explicitly requests. If your change moves a locked element, revert immediately. Use `transform` to adjust nearby elements.
+8. **Track imports and elements** -- when replacing a UI pattern, list every element from the old pattern and confirm each is removed or repurposed. Don't leave ghost elements behind.
+9. **Clean up unused elements** -- if old backgrounds, pseudo-elements, or imports are no longer needed, ask the user before removing
 
 ## 6. Toolkit Sync Check
 At natural breakpoints (end of feature, checkpoint, or ~2 hours of work), review:

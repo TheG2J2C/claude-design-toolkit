@@ -11,6 +11,9 @@ A portable toolkit that gives Claude Code the skills, commands, and templates ne
 - **Cascading breakage**: Claude makes multiple changes at once and breaks things. The workflow enforces one structural change at a time.
 - **Jargon decisions**: Claude presents technical options without explaining practical impact. The toolkit enforces plain-English pros/cons on every decision.
 - **Silent breakage**: Claude edits SVG/HTML and introduces malformed markup. The validation hook catches parse errors immediately after every edit.
+- **Locked values drift**: Claude changes a value the user already approved, breaking things. The Lock Pattern marks confirmed values as immutable.
+- **Ghost elements**: Claude adds new UI patterns without removing old ones, leaving invisible artifacts. The import/element tracking rule forces cleanup.
+- **Visual inaccuracy**: Claude claims "looks right" but misses pixel-level differences. The optional visual comparison pipeline (Puppeteer + pixelmatch + Gemini CLI) catches what Claude's eyes can't.
 
 ## Prerequisites
 
@@ -123,6 +126,26 @@ Claude checks IOS_COMPAT.md (if iOS project)
     v
 Done — report in plain English with any follow-up options clearly explained
 ```
+
+## Visual Comparison Pipeline (Optional)
+
+Set up during `/design-setup` if you want pixel-level visual comparison. Uses three tools together — each catches different things:
+
+| Tool | What it does | Catches |
+|------|-------------|---------|
+| **Puppeteer** | Takes screenshots | Overflow, clipping, layout shifts |
+| **pixelmatch** | Pixel-level diff (red = different) | WHERE differences are |
+| **Gemini CLI** | AI-powered visual analysis | WHAT the differences mean + CSS fixes |
+
+**Important:** Do NOT use any Gemini MCP server with Claude Code — they all crash due to a `oneOf/allOf/anyOf` schema bug (Anthropic issues #4886, #10606). The `collaborating-with-gemini` skill calls the Gemini CLI directly via a Python bridge script, bypassing MCP entirely.
+
+### Best Practices
+
+- Launch Puppeteer at phone viewport + 50px buffer each side to reveal overflow
+- Split images into thirds before comparing for more detail
+- Align target and current screenshots to matching regions before pixelmatch
+- Gemini Pro gives best results but has daily quota limits on free tier
+- Don't screenshot after every change — batch at natural pauses when user is giving rapid instructions
 
 ## file:// Protocol (HTML Workbench Projects)
 

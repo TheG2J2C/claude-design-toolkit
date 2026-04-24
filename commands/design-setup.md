@@ -36,6 +36,58 @@ If the user selected iOS or Cross-platform, check for ios-simulator MCP. If not 
 > claude mcp add ios-simulator -- npx ios-simulator-mcp
 > ```
 
+### Visual Comparison Pipeline (optional — ask the user)
+
+Ask the user:
+> **Do you want visual comparison tools?** These let me compare screenshots against target designs and catch pixel-level differences. Requires Gemini API key (free tier). Say "yes" to set up, or "skip" to add later.
+
+If yes:
+
+1. **Install Gemini CLI:**
+   ```
+   npm install -g @google/gemini-cli
+   ```
+   Verify: `gemini --version`
+
+2. **Install the bridge skill:**
+   ```
+   npx skillfish add bnufw/lear_by_ai collaborating-with-gemini
+   ```
+   This installs to `~/.claude/skills/collaborating-with-gemini/`
+
+3. **Get API key:** Ask the user for their Gemini API key (get one free at https://aistudio.google.com/apikey). Store in macOS Keychain:
+   ```
+   security add-generic-password -s "gemini-api-key" -a "$USER" -w "THE_KEY"
+   ```
+
+4. **Install pixelmatch** in the project:
+   ```
+   npm init -y && npm install pngjs pixelmatch
+   ```
+
+5. **Create `.gemini_uploads/` directory** in the project root for image handoff.
+
+6. **DO NOT install any Gemini MCP server** (`aliargun/mcp-server-gemini`, `@houtini/gemini-mcp`, `@rlabs-inc/gemini-mcp` — they ALL crash Claude Code due to a `oneOf/allOf/anyOf` schema bug that Anthropic won't fix).
+
+**Visual comparison workflow (add to project design command):**
+```
+## Visual Comparison
+- **Puppeteer** — take screenshots. Launch at phone viewport + 50px buffer each side to reveal overflow.
+- **pixelmatch** — `node compare.js <target.png> <current.png> <diff.png>` for pixel-level diff. Red = different.
+- **Split into thirds** — crop both images into top/mid/bot thirds before comparing for more detail.
+- **Gemini CLI bridge** — for AI-powered "describe every difference":
+  ```bash
+  export GEMINI_API_KEY=$(security find-generic-password -s "gemini-api-key" -w)
+  export GEMINI_CLI_TRUST_WORKSPACE=true
+  cp screenshot.png .gemini_uploads/
+  python3 ~/.claude/skills/collaborating-with-gemini/scripts/gemini_bridge.py \
+    --cd "." --model "gemini-2.5-pro" --PROMPT "Compare images..."
+  ```
+- **Align framing** — always crop target and current screenshots to matching regions before comparing.
+- **Don't screenshot after every change** unless needed — when user is giving rapid instructions, batch at natural pauses.
+- **Free tier limits** — Gemini Pro has daily quota. Flash is faster but inconsistent with vision. Pro resets daily.
+```
+
 ### Figma MCP (if Figma URL provided)
 If the user provided a Figma URL, check that the Figma MCP is configured. If not, suggest:
 
