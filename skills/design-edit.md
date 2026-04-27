@@ -1,20 +1,102 @@
 # Design Edit Skill
 
 Before making any UI/layout/CSS change, follow this workflow exactly. Do not skip steps.
+This skill combines pre-edit checks, iOS compatibility review, and product-design confirmation into a single mandatory gate.
 
 ## Pre-Edit Checklist
+
+### 1. Understand the Request (Product Design)
+
+Before touching any code, confirm you understand what the user actually wants:
+
+1. **REPEAT BACK** what the user wants in plain English — no CSS/code terms. Describe what it will look like and how it will behave.
+2. **ASK clarifying questions** — don't assume:
+   - Does this overlay block interaction below?
+   - What happens at the edges/boundaries?
+   - Should it animate? How fast? What easing?
+   - What's the closest iOS-native pattern? Can you name an app that does something similar?
+   - Is this a new element, a change to an existing one, or a replacement?
+3. **WAIT for confirmation.** Do not proceed without it.
+
+**For system-level changes** (new mechanics, currency loops, state machines, multi-screen features) expect **3+ confirmation rounds**, not 1–2. Each round asks ONE focused question — don't bundle. Examples that triggered multi-round confirmation in real sessions:
+- "What happens to the existing thing this replaces?" (round 1)
+- "Does the new thing interact with X — independent or linked?" (round 2)
+- "What's the win condition — auto or player-triggered?" (round 3)
+- "What asset budget does this imply?" (round 4)
+Don't summarise prematurely — until each round resolves cleanly, you're still gathering, not designing.
+
+### 1b. Spec Reconciliation (for major mechanic changes only)
+
+If the user is introducing a change that contradicts existing specs (e.g. new gameplay loop, new currency, new state model):
+
+1. **Don't write the new spec yet.** First, find what the new design conflicts with.
+2. **Delegate a spec review** — use an Explore subagent to read source spec docs and surface conflicting sections (file path + heading). Provide the new design as context.
+3. **Surface conflicts as a numbered question list** — for each conflict, give the user the choice (replace / coexist / something different).
+4. **Get explicit answers** before writing.
+5. **Write the new design into a HANDOVER doc as a new numbered section** (e.g. `DESIGN_HANDOVER.md` §15), not into source specs. End the section with a "Superseded" table naming exact files + sections that are replaced. Don't auto-edit source specs — surface that as a deferred follow-up.
+
+This pattern keeps a single source of truth without corrupting historical specs the user may want to revise on their own schedule.
+
+### 2. Trace the DOM
 
 1. **READ** the project's `DOM_MAP.md`
 2. **IDENTIFY** the element being changed and trace its full container chain (element -> parent -> grandparent -> root)
 3. **CHECK**: Does any ancestor have `overflow: hidden`? If yes, name it and note what will be clipped.
 4. **CHECK**: Does any ancestor create a stacking context (via `position` + `z-index`, `opacity < 1`, `transform`, `filter`, `will-change`)? If yes, note the impact on z-index ordering.
 5. **CHECK**: If changing `position` or `z-index`, list all siblings at the same stacking level and their current z-index values.
-6. **SCREENSHOT** the current state using Puppeteer MCP — navigate to the file:// URL and capture.
-7. **DESCRIBE** to the user in plain English what you plan to change and what you expect to happen. No CSS/code terms — describe visually.
-8. **WAIT** for user confirmation. Do not proceed without it.
-9. **Make ONE change only.** One structural change OR one styling change. Never both.
-10. **SCREENSHOT** the new state using Puppeteer MCP.
-11. **COMPARE**: Describe what actually changed vs what you expected. If anything unexpected occurred, REVERT immediately and investigate before proceeding.
+
+### 3. Check iOS Compatibility
+
+Before implementing any interaction or layout pattern:
+
+1. **READ** `IOS_COMPAT.md` (if it exists in the project)
+2. **IDENTIFY** the SwiftUI equivalent for the pattern you're about to build:
+   - Positioning → GeometryReader / .offset / .position
+   - Drag interactions → DragGesture + .offset
+   - Pull-down / bottom sheet → .presentationDetents
+   - Side drawer → .offset + DragGesture
+   - Overflow clipping → .clipped() / .clipShape()
+   - Z-ordering → .zIndex()
+   - Animations → withAnimation / .animation
+3. **FLAG** if no SwiftUI equivalent exists — warn the user before proceeding. Suggest an alternative pattern that translates.
+4. **SKIP** this step for pure visual changes (colours, fonts, shadows) that always translate cleanly.
+
+### 4. Screenshot and Measure
+
+1. **SCREENSHOT** the current state using Puppeteer MCP — navigate to the file:// URL and capture.
+2. **MEASURE** element positions with `getBoundingClientRect()` via Puppeteer evaluate, relative to the phone container top. Record exact pixel numbers.
+
+### 5. State Verifiable Success Criteria
+
+Before writing any code, state the exact success criteria for this change. These must be objectively verifiable — not "looks right" or "matches design."
+
+**Good criteria:**
+- "Button moves from top:80px to top:60px. Nothing else moves."
+- "Ring label text changes from '#C8C8C8' to '#A4000E'. Ring position unchanged."
+- "New element appears at left:14px, top:15px, font-size:11px."
+
+**Bad criteria:**
+- "Looks better"
+- "Matches the design"
+- "Button is in the right place"
+
+Write these criteria down. You will check each one in `design-verify`.
+
+### 6. Make the Change (Surgical)
+
+1. **Make ONE change only.** One structural change OR one styling change. Never both.
+2. **Touch ONLY what you must** to achieve the stated goal. Do not:
+   - "Improve" adjacent code, comments, or formatting
+   - Refactor things that aren't broken
+   - Add features, error handling, or abstractions not requested
+   - Change existing style/naming conventions to your preference
+3. **Every changed line must trace directly to the user's request.** If you can't explain why a line changed in terms of the user's request, revert it.
+4. **For repeated UI inside a fixed-height container** — calculate the space-fit math BEFORE writing CSS. Formula:
+   `instances × instance_height + (instances − 1) × gap + container_padding ≤ container_height`
+   If the math says it overflows, surface to the user with options BEFORE coding (e.g. "10 of these at 56px tall would overflow by 100px — want me to A) shrink to 44px, B) add internal scroll, or C) accept page scroll?"). Don't code first and discover the overflow afterwards.
+5. **SCREENSHOT** the new state using Puppeteer MCP.
+6. **MEASURE** again — compare numbers against target. Never say "looks close."
+7. **COMPARE**: Describe what actually changed vs what you expected. If anything unexpected occurred, REVERT immediately and investigate before proceeding.
 
 ## Hard Rules
 
@@ -26,8 +108,9 @@ These rules are non-negotiable. Violating any of them requires stopping and reas
 - **Never** change `z-index` without checking all siblings at the same stacking level and confirming the new ordering is correct.
 - **Never** combine repositioning with restyling. One structural change at a time.
 - **Never** change `position` values (static/relative/absolute/fixed) without understanding the full impact on the element's children and siblings.
-- **Never** change a LOCKED value (marked ⚠️ LOCKED in DOM_MAP.md) unless the user explicitly requests it. If your change moves a locked element, you made a mistake — revert immediately.
+- **Never** change a LOCKED value (marked with LOCKED in DOM_MAP.md) unless the user explicitly requests it. If your change moves a locked element, you made a mistake — revert immediately.
 - **Never** adjust siblings of locked elements using `margin` or `padding` — use `transform: translateX/Y()` instead, which moves visually without affecting layout flow.
+- **Never present colours as hex codes alone.** Humans can't read hex. When proposing colour options or showing a palette, render visual swatches in the mockup file (or generate a quick swatch HTML and screenshot it). A hex table without colour blocks is unreadable feedback.
 
 ## Replacing UI Patterns
 

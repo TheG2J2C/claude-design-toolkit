@@ -149,6 +149,23 @@ If the user selected "HTML workbench" as prototype format, add this note to the 
 
 > **file:// Protocol Constraints:** The workbench must open by double-clicking (file:// protocol). Standard `<script src="file.js">` and `<link href="styles.css">` tags work fine from file://. JavaScript `fetch()` does NOT work from file://. Never use fetch() to load local assets — use HTML tags instead.
 
+### 3g. Screenshots Folder Convention
+
+Recommend the user designate a screenshots folder for the project. Two options:
+
+1. **Per-project folder (preferred):** `<project-root>/screenshots/` — keeps reference images alongside the project, survives reorganisation, no system-path dependency.
+2. **Shared workspace folder:** e.g. `~/projects/ScreenShots/` if the user prefers all screenshots in one place across projects.
+
+Avoid using iCloud Drive folders (`~/Library/Mobile Documents/com~apple~CloudDocs/Screen Shots/`) as the primary path — they require `brctl download` for files not yet synced, and can rot when the user reorganises their Mac.
+
+Add a note to the project's design command (Section 6 — Available Tools):
+
+```
+- **User screenshots ("ss" shorthand)** — when user says "ss", fetch the latest screenshot from `<configured-screenshots-folder>` and Read it directly. Files are typically named `SCR-YYYYMMDD-xxxx.png`.
+```
+
+Save the chosen path as a memory entry (`feedback_ss_shorthand.md`) so it's recoverable across sessions.
+
 ## Step 4: Report
 
 Tell the user what was created. Use this format:

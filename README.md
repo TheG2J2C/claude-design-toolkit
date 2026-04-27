@@ -68,8 +68,8 @@ claude mcp add ios-simulator -- npx ios-simulator-mcp
 
 | File | Purpose |
 |------|---------|
-| `skills/design-edit.md` | Enforces a strict workflow before any CSS/HTML/UI edit: read DOM map, trace containers, screenshot before/after, confirm with user, one change at a time. Includes rules for presenting options in plain English. |
-| `skills/design-verify.md` | Post-edit verification: screenshot, check DOM map accuracy, check iOS compatibility, update documentation. Includes rules for suggesting improvements clearly. |
+| `skills/design-edit.md` | Mandatory pre-flight gate for any UI edit. Combines: product-design confirmation (repeat back understanding, ask clarifying questions, wait for user OK), DOM trace (container chain, overflow, stacking contexts), iOS compatibility check (identify SwiftUI equivalent, flag if none exists), screenshot + measurement, one change at a time. Includes rules for presenting options in plain English. |
+| `skills/design-verify.md` | Mandatory post-flight gate after any UI edit. Combines: screenshot + pixel measurement (getBoundingClientRect, exact numbers not "looks close"), visual comparison pipeline (pixelmatch + Gemini CLI), DOM accuracy audit (check LOCKED values, stacking contexts), iOS compatibility verification, DOM_MAP.md update, plain English report with measurements. |
 
 ### Templates
 
@@ -153,6 +153,8 @@ HTML workbench files are opened by double-clicking in Finder, which uses the `fi
 
 - **Works from file://**: `<script src="file.js">`, `<link href="styles.css">`, `<img src="image.svg">` — standard HTML tags load local files fine.
 - **Does NOT work from file://**: JavaScript `fetch()` — the browser blocks it for security reasons.
+- **`<object>` SVG gotcha**: `<object data="file.svg">` will render the SVG, but `contentDocument` returns null from file:// (cross-origin). If you need to manipulate SVG layers (show/hide, set viewBox), you must **inline the SVG** directly in the HTML.
+- **SVG viewBox matching**: When the same SVG appears on multiple pages at the same zoom, the `viewBox` calculation must include the **same layers** (even hidden ones). Otherwise the zoom levels won't match between pages.
 
 This means you can split a workbench into multiple files (HTML + CSS + JS) using normal HTML tags. You do NOT need a local server for this. Never use `fetch()` to load local assets.
 
