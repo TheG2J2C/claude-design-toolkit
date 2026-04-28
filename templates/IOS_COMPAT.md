@@ -3,6 +3,23 @@
 > Maps HTML/CSS prototype patterns to their SwiftUI implementation equivalents.
 > Check this BEFORE implementing any new UI pattern in the prototype.
 
+## How to Maintain This File
+
+This file is meant to **grow with each design session**. As new HTML/CSS patterns are introduced in the prototype, append them with their SwiftUI equivalent here.
+
+**Convention**: when adding patterns from a session, add a dated subsection rather than mixing into the existing tables — easy diffing, easy rollback.
+
+```markdown
+## New Patterns (added 2026-04-28)
+
+| Web pattern | SwiftUI Equivalent | Notes |
+|---|---|---|
+| Modal card overlay (visibility + opacity → .open) | `.sheet(isPresented:)` with `.presentationDetents([.large])` | iOS 16+ |
+| ...etc... | | |
+```
+
+The "verified patterns" table below is for items the iOS audit confirmed work as expected. The dated sections are for new mappings discovered during prototyping — they get promoted into the main tables once verified on-device.
+
 ## Layout
 
 | HTML/CSS Pattern | SwiftUI Equivalent | Notes |

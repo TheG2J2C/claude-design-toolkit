@@ -10,6 +10,14 @@
 - Position and z-index shown for all positioned elements
 - Elements that clip children are marked explicitly
 
+### Conventions
+
+- **`(JS-set top)`** / **`(JS-set translateX)`** etc. — use this marker on any element whose final position/transform is computed at runtime by JavaScript, not the static CSS. The CSS value is then a placeholder. This prevents future you (or another agent) from "fixing" CSS that's intentionally a starting value.
+- **`OVH`** = `overflow: hidden`. Always note this — children are clipped to this box.
+- **`SC`** = creates a new stacking context (any of: `position` + `z-index`, `transform`, `opacity < 1`, `filter`, etc.). Z-index inside an SC is sandboxed.
+- **`⚠️ LOCKED`** — an element whose values are user-confirmed and must NOT be changed without explicit permission.
+- **`⚠️ NEW <date>`** — newly added in a recent session, useful for diff-reading.
+
 ## Page Structure
 
 <!-- REPLACE WITH YOUR PROJECT'S ACTUAL DOM TREE -->
