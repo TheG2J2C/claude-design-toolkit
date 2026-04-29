@@ -1,10 +1,23 @@
 Resume the {{PROJECT_NAME}} Design workbench. Complete each step before moving to the next.
 
-## 1. Load Context
-- Read ALL memory files listed in MEMORY.md
-- Read the DOM_MAP.md in the project folder
-- Read the IOS_COMPAT.md if it exists
-- Read the DESIGN_HANDOVER.md if it exists
+## 1. Load Context (LAZY — load only what's needed)
+
+**Always load (small, ~15 KB total):**
+- `README.md` — folder map
+- `DESIGN_HANDOVER.md` — INDEX of component specs (NOT a monolith — see `DOC_STRUCTURE.md`)
+- `docs/rules.md` — universal rules
+- `MEMORY.md` index ONLY (do NOT bulk-load all memory files)
+
+**Load when needed (per task):**
+- `docs/tokens.md` — when colour / size / shadow / z-index values are involved
+- `DOM_MAP.md` — when structural change is involved
+- `IOS_COMPAT.md` — when iOS translation matters
+- `docs/components/<slug>.md` — ONLY the file for the component the user wants to work on (and its `depends_on`)
+- Memory files — lazy-load by topic, not bulk
+
+**Do NOT load:**
+- All component files (16+ at once)
+- Old monolithic spec snapshots in `docs/_archive/`
 
 ## 2. Verify Workbench Files
 Confirm the key project files exist. If any are missing, flag immediately.

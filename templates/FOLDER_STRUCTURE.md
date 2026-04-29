@@ -20,8 +20,8 @@ A clean, scalable layout for any HTML/CSS design workbench project. Adopted in t
 ```
 .
 ├── README.md                       ← Folder map + restore-from-archive procedure (REQUIRED)
-├── DESIGN_HANDOVER.md              ← Canonical design spec
-├── DOM_MAP.md                      ← Structural truth
+├── DESIGN_HANDOVER.md              ← INDEX of component specs (~150 lines, NOT a monolith — see DOC_STRUCTURE.md)
+├── DOM_MAP.md                      ← Structural truth + CSS class/ID/JS-var indexes
 ├── IOS_COMPAT.md                   ← iOS / SwiftUI translation reference (optional, for iOS targets)
 │
 ├── workbench/                      ← Live HTML files (double-click to open)
@@ -45,8 +45,15 @@ A clean, scalable layout for any HTML/CSS design workbench project. Adopted in t
 │   │   └── ...
 │   └── shapes/                     ← Reusable shape references
 │
-├── docs/
-│   └── source-specs/               ← Source design documents (vision, brief, etc.)
+├── docs/                           ← Atomic design specs — see DOC_STRUCTURE.md
+│   ├── tokens.md / tokens.json    ← W3C Design Tokens 2025.10 — colours, type, sizes, shadows, z-index
+│   ├── naming.md                   ← System-prefix code convention
+│   ├── rules.md                    ← Universal rules (supersede component specs)
+│   ├── deferred.md                 ← Restoration spec for prototyped-then-dropped features
+│   ├── components/                 ← One file per UI component (template at templates/component-template.md)
+│   │   └── <slug>.md
+│   ├── source-specs/               ← Source design documents (vision, brief, etc.)
+│   └── _archive/                   ← Historical doc snapshots
 │
 ├── tools/                          ← CLI helpers + JS deps
 │   ├── compare.js                  ← e.g. pixelmatch

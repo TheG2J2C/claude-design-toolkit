@@ -103,6 +103,9 @@ Use the toolkit templates to create project-specific files. The templates are lo
 - `~/projects/claude-design-toolkit/templates/IOS_COMPAT.md`
 - `~/projects/claude-design-toolkit/templates/DESIGN_PROTOCOL.md`
 - `~/projects/claude-design-toolkit/templates/FOLDER_STRUCTURE.md`
+- `~/projects/claude-design-toolkit/templates/DOC_STRUCTURE.md`         ← atomic component-file pattern
+- `~/projects/claude-design-toolkit/templates/component-template.md`    ← per-component frontmatter + sections
+- `~/projects/claude-design-toolkit/templates/SOURCES.md`               ← reading list / W3C / DESIGN.md / etc.
 - `~/projects/claude-design-toolkit/templates/project-design-command.md`
 
 ### 3.0 Establish Folder Structure (BEFORE creating files)
