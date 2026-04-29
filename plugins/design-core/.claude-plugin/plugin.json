@@ -3,29 +3,11 @@
   "name": "design-core",
   "version": "1.0.0",
   "description": "Mandatory skills (design-edit, design-verify), 6 reusable agent role files, validation hook, design-setup command, and templates for the atomic doc + W3C tokens pattern.",
-  "author": "TheG2J2C",
+  "author": {
+    "name": "TheG2J2C",
+    "url": "https://github.com/TheG2J2C"
+  },
   "license": "MIT",
   "homepage": "https://github.com/TheG2J2C/claude-design-toolkit/tree/main/plugins/design-core",
-  "components": {
-    "skills": [
-      "skills/design-edit/SKILL.md",
-      "skills/design-verify/SKILL.md"
-    ],
-    "agents": [
-      "agents/design-reviewer.md",
-      "agents/drift-checker.md",
-      "agents/doc-extractor.md",
-      "agents/ios-translator.md",
-      "agents/token-auditor.md",
-      "agents/adversarial-critic.md"
-    ],
-    "hooks": [
-      "hooks/validate-design-files.sh",
-      "hooks/task-completed-acceptance-check.sh"
-    ],
-    "commands": [
-      "commands/design-setup.md"
-    ]
-  },
-  "templates_dir": "templates"
+  "repository": "https://github.com/TheG2J2C/claude-design-toolkit"
 }
