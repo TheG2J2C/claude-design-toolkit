@@ -1,3 +1,26 @@
+---
+name: design-verify
+description: |
+  MANDATORY post-flight gate after any UI change. Screenshots & measures AFTER with exact pixel
+  values, runs pixelmatch + Gemini visual diff vs target, audits DOM_MAP accuracy, checks no
+  LOCKED values moved, verifies iOS compat, and updates DOM_MAP/component-spec if structure changed.
+  Use AFTER every edit; never declare "done" without invoking this.
+auto_activate: true
+trigger_patterns:
+  - "workbench/**/*.html"
+  - "workbench/**/*.css"
+  - "assets/layout/**/*.svg"
+tools_allowlist:
+  - Read
+  - Grep
+  - Glob
+  - Edit
+  - Bash
+  - mcp__puppeteer-mcp-claude__*
+references:
+  - references/DESIGN_PROTOCOL.md
+---
+
 # Design Verify Skill
 
 After completing any UI change, run this verification before reporting "done" to the user.

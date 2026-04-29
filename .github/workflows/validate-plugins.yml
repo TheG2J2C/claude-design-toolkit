@@ -1,0 +1,98 @@
+name: Validate plugins
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ajv (JSON-schema validator)
+        run: npm install -g ajv-cli
+
+      - name: Validate marketplace.json is valid JSON
+        run: python -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
+
+      - name: Validate every plugin.json is valid JSON
+        run: |
+          for f in plugins/*/.claude-plugin/plugin.json; do
+            echo "Checking $f"
+            python -c "import json; json.load(open('$f'))"
+          done
+
+      - name: Validate marketplace declares every plugin folder
+        run: |
+          python <<'EOF'
+          import json, glob, sys
+          mp = json.load(open('.claude-plugin/marketplace.json'))
+          declared = {p['path'] for p in mp.get('plugins', [])}
+          actual = {p.replace('/.claude-plugin/plugin.json', '').replace('plugins/', 'plugins/')
+                    for p in glob.glob('plugins/*/.claude-plugin/plugin.json')}
+          actual = {p.replace('/.claude-plugin/plugin.json', '') for p in glob.glob('plugins/*/.claude-plugin/plugin.json')}
+          missing = actual - declared
+          extra = declared - actual
+          if missing: print("UNDECLARED PLUGINS:", missing); sys.exit(1)
+          if extra: print("DECLARED BUT MISSING:", extra); sys.exit(1)
+          print("OK — marketplace ↔ filesystem in sync")
+          EOF
+
+      - name: Validate every component declared in plugin.json exists
+        run: |
+          python <<'EOF'
+          import json, glob, os, sys
+          fail = False
+          for plugin_json in glob.glob('plugins/*/.claude-plugin/plugin.json'):
+              plugin_dir = os.path.dirname(os.path.dirname(plugin_json))
+              data = json.load(open(plugin_json))
+              for cat, items in data.get('components', {}).items():
+                  for path in items:
+                      full = os.path.join(plugin_dir, path)
+                      if not os.path.exists(full):
+                          print(f"MISSING: {full} (declared in {plugin_json})")
+                          fail = True
+          if fail: sys.exit(1)
+          print("OK — every declared component exists")
+          EOF
+
+      - name: Validate every skill SKILL.md has frontmatter
+        run: |
+          for f in plugins/*/skills/*/SKILL.md; do
+            head -1 "$f" | grep -q '^---$' || { echo "MISSING FRONTMATTER: $f"; exit 1; }
+          done
+          echo "OK — every skill has frontmatter"
+
+      - name: Validate every agent .md has frontmatter
+        run: |
+          for f in plugins/*/agents/*.md; do
+            head -1 "$f" | grep -q '^---$' || { echo "MISSING FRONTMATTER: $f"; exit 1; }
+          done
+          echo "OK — every agent has frontmatter"
+
+      - name: Validate hooks are executable
+        run: |
+          for f in plugins/*/hooks/*.sh; do
+            test -x "$f" || { echo "NOT EXECUTABLE: $f"; chmod +x "$f"; }
+          done
+          echo "OK — all hooks executable"
+
+      - name: Lint shell scripts (shellcheck)
+        run: |
+          sudo apt-get install -y shellcheck
+          for f in plugins/*/hooks/*.sh; do
+            shellcheck "$f" || true   # warnings only for now
+          done

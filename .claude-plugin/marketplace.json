@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "claude-design-toolkit",
+  "version": "1.0.0",
+  "description": "Production-grade design workflow for Claude Code — atomic doc structure, slot-focused component specs, W3C tokens, agent role files, mandatory pre/post-flight skills.",
+  "author": "TheG2J2C",
+  "license": "MIT",
+  "homepage": "https://github.com/TheG2J2C/claude-design-toolkit",
+  "auto_update": true,
+  "plugins": [
+    {
+      "name": "design-core",
+      "path": "plugins/design-core",
+      "description": "Core skills, agent role files, hooks, commands, templates. Required for all design projects."
+    }
+  ]
+}

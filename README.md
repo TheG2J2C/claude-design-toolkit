@@ -1,235 +1,164 @@
 # Claude Design Toolkit
 
-A portable toolkit that gives Claude Code the skills, commands, and templates needed to do frontend/UI design work properly.
+A Claude Code **plugin marketplace** that gives Claude the skills, agent role files, hooks, and templates needed to do frontend/UI design work properly.
 
-## Problems This Solves
+> **Restructured 2026-04-29 as a Claude Code plugin marketplace.** Adoption is now one settings.json line + `/plugin install design-core` — no more `install.sh` ritual. See [docs/ADOPTING.md](docs/ADOPTING.md). The legacy install.sh remains as a backstop for one release.
 
-- **Blind editing**: Claude edits CSS/HTML without seeing results. This toolkit enforces screenshot-before/after verification via Puppeteer MCP.
-- **DOM ignorance**: Claude doesn't understand container hierarchies, stacking contexts, or overflow boundaries. The DOM_MAP template forces explicit tracking.
-- **iOS translation gap**: Claude doesn't know which CSS patterns translate to SwiftUI and which are dead ends. IOS_COMPAT.md maps every pattern.
-- **Premature coding**: Claude jumps to implementation without confirming understanding. The Design Protocol requires plain-English confirmation first.
-- **Cascading breakage**: Claude makes multiple changes at once and breaks things. The workflow enforces one structural change at a time.
-- **Jargon decisions**: Claude presents technical options without explaining practical impact. The toolkit enforces plain-English pros/cons on every decision.
-- **Silent breakage**: Claude edits SVG/HTML and introduces malformed markup. The validation hook catches parse errors immediately after every edit.
-- **Locked values drift**: Claude changes a value the user already approved, breaking things. The Lock Pattern marks confirmed values as immutable.
-- **Ghost elements**: Claude adds new UI patterns without removing old ones, leaving invisible artifacts. The import/element tracking rule forces cleanup.
-- **Visual inaccuracy**: Claude claims "looks right" but misses pixel-level differences. The optional visual comparison pipeline (Puppeteer + pixelmatch + Gemini CLI) catches what Claude's eyes can't.
+---
+
+## What you get
+
+Install one plugin (`design-core`); receive:
+
+- **2 mandatory skills** — `design-edit` (pre-flight) and `design-verify` (post-flight). Auto-activate on workbench file edits.
+- **6 agent role files** — `design-reviewer`, `drift-checker`, `doc-extractor`, `ios-translator`, `token-auditor`, `adversarial-critic`. Usable as subagents AND (with the experimental flag) as Agent Team teammates. Same file works both ways — see [Anthropic docs](https://code.claude.com/docs/en/agent-teams).
+- **1 validation hook** — `validate-design-files.sh`. Auto-validates SVG/HTML on Edit/Write.
+- **1 slash command** — `/design-setup` to bootstrap a new project's content.
+- **All templates** — DOM_MAP, IOS_COMPAT, FOLDER_STRUCTURE, DOC_STRUCTURE, component-template, project-design-command, SOURCES, snippets/.
+
+Auto-update at session start. Semver-versioned. CI-validated on every PR.
+
+---
+
+## Quick install (Path A — marketplace)
+
+In your project's `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "claude-design-toolkit": {
+      "source": { "type": "github", "repo": "TheG2J2C/claude-design-toolkit" }
+    }
+  }
+}
+```
+
+Then in Claude Code:
+
+```
+/plugin install design-core
+```
+
+Done. See [docs/ADOPTING.md](docs/ADOPTING.md) for full details + Path B (legacy install.sh).
+
+---
+
+## What's in this repo
+
+```
+claude-design-toolkit/
+├── .claude-plugin/
+│   └── marketplace.json           ← Marketplace manifest
+├── .github/workflows/
+│   └── validate-plugins.yml      ← CI: validate manifests, frontmatter, hooks on every PR
+├── docs/
+│   ├── ADOPTING.md               ← How to install + migrate from install.sh
+│   └── PLUGINS.md                ← What each plugin / skill / agent does
+├── plugins/
+│   └── design-core/
+│       ├── .claude-plugin/plugin.json
+│       ├── skills/
+│       │   ├── design-edit/{SKILL.md, references/, scripts/}
+│       │   └── design-verify/{SKILL.md, references/, scripts/}
+│       ├── agents/                ← 6 role files
+│       ├── hooks/
+│       ├── commands/
+│       └── templates/
+├── install.sh                     ← Legacy install (deprecated, still works)
+└── README.md                      ← (this file)
+```
+
+---
+
+## Problems this solves
+
+- **Blind editing.** `design-edit` enforces screenshot-before via Puppeteer MCP.
+- **DOM ignorance.** DOM_MAP template forces explicit hierarchy tracking.
+- **iOS translation gap.** IOS_COMPAT template maps every CSS pattern to its SwiftUI equivalent.
+- **Premature coding.** Design Protocol requires plain-English confirmation first.
+- **Cascading breakage.** One change at a time, enforced.
+- **Silent SVG/HTML breakage.** Validation hook catches malformed markup immediately.
+- **Locked-value drift.** Component-spec frontmatter declares `locked_values`; `drift-checker` agent verifies.
+- **Visual inaccuracy.** Optional pipeline (Puppeteer + pixelmatch + Gemini CLI) catches what eyeballing misses.
+- **Monolithic spec rot.** `DOC_STRUCTURE.md` template defines the atomic component-file pattern + W3C tokens.
+
+---
 
 ## Prerequisites
 
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and working
-- Node.js (required for Puppeteer MCP)
-- Python 3 (required for validation hook)
-- jq (required for validation hook — `brew install jq`)
-- For iOS projects: Xcode with Simulator
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) v2.1.32+ (for Agent Teams support)
+- Node.js (for Puppeteer MCP)
+- Python 3 (for validation hook)
+- jq (`brew install jq`)
+- For iOS projects: Xcode
 
-## Installation
-
-```bash
-git clone <this-repo> ~/projects/claude-design-toolkit
-cd ~/projects/claude-design-toolkit
-./install.sh
-```
-
-This installs:
-- `/design-setup` slash command into `~/.claude/commands/` (symlinked — auto-updates)
-- `design-edit` and `design-verify` skills into `~/.claude/skills/` (copied — re-run install.sh to update)
-
-Then install the required MCP servers in Claude Code:
+Install MCP servers:
 
 ```bash
-# The `serve` subcommand is required — without it the process prints help and exits
+# REQUIRED: serve subcommand — without it the process prints help and exits
 claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude serve
-```
 
-For iOS projects:
-
-```bash
+# Optional, for iOS projects
 claude mcp add ios-simulator -- npx ios-simulator-mcp
 ```
 
-## Quick Start
+---
 
-1. Open your project in Claude Code
-2. Run `/design-setup`
-3. Answer the setup questions (project name, platform, tech stack, etc.)
-4. The command creates project-specific files: DOM_MAP.md, IOS_COMPAT.md, a design command, a validation hook, and appends the Design Protocol to your CLAUDE.md
-5. Start designing with the enforced workflow
+## Enabling Agent Teams (optional, experimental)
 
-## What Each File Does
+To make the 6 agent role files double as Agent Team teammates:
 
-### Commands
-
-| File | Purpose |
-|------|---------|
-| `commands/design-setup.md` | Slash command that configures a project for design work. Creates all project-specific files, installs the validation hook, and checks MCP dependencies. |
-
-### Skills
-
-| File | Purpose |
-|------|---------|
-| `skills/design-edit.md` | Mandatory pre-flight gate for any UI edit. Combines: product-design confirmation (repeat back understanding, ask clarifying questions, wait for user OK), DOM trace (container chain, overflow, stacking contexts), iOS compatibility check (identify SwiftUI equivalent, flag if none exists), screenshot + measurement, one change at a time. Includes rules for presenting options in plain English. |
-| `skills/design-verify.md` | Mandatory post-flight gate after any UI edit. Combines: screenshot + pixel measurement (getBoundingClientRect, exact numbers not "looks close"), visual comparison pipeline (pixelmatch + Gemini CLI), DOM accuracy audit (check LOCKED values, stacking contexts), iOS compatibility verification, DOM_MAP.md update, plain English report with measurements. |
-
-### Templates
-
-| File | Purpose |
-|------|---------|
-| `templates/DOM_MAP.md` | Template for tracking the DOM hierarchy, stacking contexts, z-index scale, and overflow boundaries. The structural truth of the page. |
-| `templates/IOS_COMPAT.md` | Maps HTML/CSS patterns to SwiftUI equivalents. Prevents using CSS tricks that have no iOS translation. |
-| `templates/DESIGN_PROTOCOL.md` | Rules appended to a project's CLAUDE.md that enforce confirmation-before-coding, one-change-at-a-time, plain-English decisions, slot-focused spec writing, no-invented-mock-data, deferred-features handling, and proper design communication. |
-| `templates/project-design-command.md` | Template for per-project design resume commands. Filled in by /design-setup with project-specific values. |
-| `templates/hooks/validate-design-files.sh` | PostToolUse hook that validates SVG (XML parse) and HTML after every Edit/Write. Catches malformed markup immediately. |
-| `templates/snippets/phone-rulers.html` | Drop-in CSS+JS for visible px rulers along the left and bottom of a phone container. Origin (0,0) at phone top-left. Enables `x200/y150` shorthand with the user. **Recommended starting point for every workbench.** |
-| `templates/snippets/swipe-row.html` | Drop-in CSS+JS for Apple-Reminders-style swipe-to-reveal-actions on list rows. Drag left/right reveals action buttons; tap-to-fire; tap-outside dismisses. iOS equivalent: `.swipeActions(edge:)`. |
-
-## The Workflow It Enforces
-
-```
-User requests a UI change
-    |
-    v
-Claude reads DOM_MAP.md
-    |
-    v
-Claude traces the element's container chain
-    |
-    v
-Claude checks stacking contexts, overflow, z-index
-    |
-    v
-Claude screenshots the current state (Puppeteer MCP)
-    |
-    v
-Claude describes the plan in plain English
-    |
-    v
-User confirms  <-- GATE: no code until confirmed
-    |
-    v
-Claude makes ONE change
-    |
-    v
-Validation hook checks SVG/HTML is valid  <-- AUTOMATIC
-    |
-    v
-Claude screenshots the new state
-    |
-    v
-Claude compares expected vs actual
-    |
-    v
-If unexpected: REVERT and investigate
-If correct: update DOM_MAP.md if structure changed
-    |
-    v
-Claude checks IOS_COMPAT.md (if iOS project)
-    |
-    v
-Done — report in plain English with any follow-up options clearly explained
+```json
+// In ~/.claude/settings.json or your project's .claude/settings.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
 ```
 
-## Visual Comparison Pipeline (Optional)
+Then ask Claude to "create an agent team to review habbit-panel from UX, iOS, and accessibility perspectives" — three teammates spawn, each loading one of the agent role files, debate findings, lead synthesises. See [plans/03-managed-agents.md](https://github.com/TheG2J2C/claude-design-toolkit/blob/main/docs/PLUGINS.md) and the [Anthropic Agent Teams docs](https://code.claude.com/docs/en/agent-teams).
 
-Set up during `/design-setup` if you want pixel-level visual comparison. Uses three tools together — each catches different things:
+---
 
-| Tool | What it does | Catches |
-|------|-------------|---------|
-| **Puppeteer** | Takes screenshots | Overflow, clipping, layout shifts |
-| **pixelmatch** | Pixel-level diff (red = different) | WHERE differences are |
-| **Gemini CLI** | AI-powered visual analysis | WHAT the differences mean + CSS fixes |
+## Versioning + auto-update
 
-**Important:** Do NOT use any Gemini MCP server with Claude Code — they all crash due to a `oneOf/allOf/anyOf` schema bug (Anthropic issues #4886, #10606). The `collaborating-with-gemini` skill calls the Gemini CLI directly via a Python bridge script, bypassing MCP entirely.
+`marketplace.json` declares `auto_update: true`. Claude Code refreshes on session start; new versions install automatically. Pin a version in your settings if you don't want this.
 
-### Best Practices
+Semver: patch releases never break existing skill/script/template paths.
 
-- Launch Puppeteer at phone viewport + 50px buffer each side to reveal overflow
-- Split images into thirds before comparing for more detail
-- Align target and current screenshots to matching regions before pixelmatch
-- Gemini Pro gives best results but has daily quota limits on free tier
-- Don't screenshot after every change — batch at natural pauses when user is giving rapid instructions
+---
 
-## file:// Protocol (HTML Workbench Projects)
+## Contributing
 
-HTML workbench files are opened by double-clicking in Finder, which uses the `file://` protocol. This has one important constraint:
-
-- **Works from file://**: `<script src="file.js">`, `<link href="styles.css">`, `<img src="image.svg">` — standard HTML tags load local files fine.
-- **Does NOT work from file://**: JavaScript `fetch()` — the browser blocks it for security reasons.
-- **`<object>` SVG gotcha**: `<object data="file.svg">` will render the SVG, but `contentDocument` returns null from file:// (cross-origin). If you need to manipulate SVG layers (show/hide, set viewBox), you must **inline the SVG** directly in the HTML.
-- **SVG viewBox matching**: When the same SVG appears on multiple pages at the same zoom, the `viewBox` calculation must include the **same layers** (even hidden ones). Otherwise the zoom levels won't match between pages.
-
-This means you can split a workbench into multiple files (HTML + CSS + JS) using normal HTML tags. You do NOT need a local server for this. Never use `fetch()` to load local assets.
-
-## Portability
-
-This toolkit is self-contained. To use on another machine:
-
-1. Clone the repo
-2. Run `./install.sh`
-3. Install the MCP servers via `claude mcp add`
-
-The install script symlinks the command and copies skills, so updates to the toolkit repo are picked up automatically for commands (symlinked) and require re-running `./install.sh` for skills (copied).
-
-## Templates Reference
-
-### DOM_MAP.md Notation
-
-- Indentation = DOM nesting
-- `(relative)`, `(absolute)` = CSS position
-- `z:N` = z-index value
-- Warning symbol = creates stacking context or has overflow:hidden
-
-### IOS_COMPAT.md Sections
-
-- **Layout**: position/overflow/z-index to SwiftUI mappings
-- **Interactions**: drag/pull/transition to gesture/animation mappings
-- **Avoidance Checklist**: questions to ask before implementing any interaction
-- **Common Patterns**: copy-paste SwiftUI code for standard UI patterns
-
-## Troubleshooting
-
-### Puppeteer MCP not connecting
-
-The most common cause is a missing `serve` subcommand:
+PRs welcome. CI runs on every PR (validate-plugins.yml). Local dev:
 
 ```bash
-# Check current config
-claude mcp list
-
-# Remove and re-add with the correct command
-claude mcp remove puppeteer-mcp-claude
-claude mcp add puppeteer-mcp-claude -- npx puppeteer-mcp-claude serve
+git clone https://github.com/TheG2J2C/claude-design-toolkit.git
+cd claude-design-toolkit
+# Edit files in plugins/design-core/
+# Validate locally:
+python3 -c "import json; json.load(open('.claude-plugin/marketplace.json'))"
+for f in plugins/*/.claude-plugin/plugin.json; do python3 -c "import json; json.load(open('$f'))"; done
 ```
 
-**Note:** After changing MCP config, restart Claude Code for it to take effect.
+To test against a local project, point its `extraKnownMarketplaces` `source` at a local file path instead of github.
 
-### Screenshots failing for file:// URLs
+---
 
-Puppeteer needs the full absolute path:
-```
-file:///Users/you/projects/myproject/index.html
-```
+## Why this shape (the rationale)
 
-### Validation hook not firing
+See `docs/PHILOSOPHY.md` (planned). Short version:
 
-Check that:
-1. The hook script exists at `.claude/hooks/validate-design-files.sh` and is executable (`chmod +x`)
-2. The `PostToolUse` config is in `.claude/settings.local.json` with the correct absolute path
-3. `jq` and `python3` are installed
+- **Atomic plugins** beat a monolithic toolkit because Claude Code's plugin system can update them independently.
+- **Agent role files** beat hardcoded subagent prompts because the same file works as a one-shot subagent OR a long-lived Agent Team teammate.
+- **Skills as folders** (`SKILL.md` + `references/` + `scripts/`) beat single-file skills because they can carry assets and helpers.
+- **Marketplace distribution** beats `install.sh` because it auto-updates and is discoverable in the `/plugin` UI.
+- **CI on every PR** catches broken manifests before they ship to projects.
 
-### /design-setup not appearing
+---
 
-```bash
-# Check the symlink exists
-ls -la ~/.claude/commands/design-setup.md
+## Sources & reading list
 
-# Re-run installer
-cd ~/projects/claude-design-toolkit && ./install.sh
-```
-
-### Skills not being followed
-
-Skills are advisory. If Claude isn't following the design-edit workflow, remind it:
-```
-Follow the design-edit skill. Read DOM_MAP.md first, screenshot before changing anything.
-```
+See [`plugins/design-core/templates/SOURCES.md`](plugins/design-core/templates/SOURCES.md) for background reading on the W3C Design Tokens spec, atomic component docs, pixel-perfect handoff, Claude Code plugins, Agent Teams, and Vite single-file bundling for WKWebView.

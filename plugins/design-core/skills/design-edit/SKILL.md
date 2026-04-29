@@ -1,3 +1,24 @@
+---
+name: design-edit
+description: |
+  MANDATORY pre-flight gate for any UI / layout / CSS change in a design workbench project.
+  Confirms understanding, traces DOM, checks iOS compatibility, screenshots & measures BEFORE,
+  and enforces one-change-at-a-time. Use BEFORE every edit to a workbench HTML/CSS/SVG file.
+auto_activate: true
+trigger_patterns:
+  - "workbench/**/*.html"
+  - "workbench/**/*.css"
+  - "assets/layout/**/*.svg"
+tools_allowlist:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - mcp__puppeteer-mcp-claude__*
+references:
+  - references/DESIGN_PROTOCOL.md
+---
+
 # Design Edit Skill
 
 Before making any UI/layout/CSS change, follow this workflow exactly. Do not skip steps.
