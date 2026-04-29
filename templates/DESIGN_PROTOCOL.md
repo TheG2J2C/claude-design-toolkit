@@ -106,3 +106,59 @@ Update or remove them when those docs are next revised:
 - Assume understanding -- always confirm
 - Present technical options without explaining practical impact
 - Move or resize a LOCKED element without explicit user request
+- **Invent mock data the user didn't supply** — if a row needs a label / value / unit and the user hasn't said what it is, ASK or use a literal placeholder (`XXXX`, `9999`). Never guess.
+- **Patch a structural problem with a band-aid surface** — when you see a gap in a layout where the colour underneath shows through, FIRST ask what the underneath should be. If two same-colour surfaces have a gap and a third matching surface "fixes" it, you're probably hiding a structural problem (e.g. dead content beneath that should be removed). Surface the issue to the user before patching.
+
+### Slot-Focused Spec Convention
+
+When documenting any UI component (in DESIGN_HANDOVER.md, DOM_MAP.md, or anywhere else), describe **slots** that get filled — not the specific user content currently filling them.
+
+**Wrong:**
+> Drink water row has the title "Drink water", time tag "PM", and target "8 CUPS"
+
+**Right:**
+> The row has a Title slot (top-left, 14px / 600 / `#2C160E`, 22-char limit), a Time Tag slot (below title, 9px / 800 / `#A8A29E` uppercase — content is `AM`/`MID`/`PM` for daily habits, deadline date for Ongoing), and a Target slot (top-right, split into number column right-aligned at x=327 and code column left-aligned at x=330).
+
+Specific mock values (`Drink water`, `8 CUPS`, `15.MAR`, etc.) live in a separate **Mock Data Reference** table at the end of the section, clearly marked as illustrative — they are example content that fills the slots, not part of the spec itself.
+
+**Why:** Mock content gets replaced when the real create/edit flow is built. The slot structure (positions, alignment, formatting) is permanent. Documenting `Drink water` makes the spec brittle and confuses what's locked vs what's example data.
+
+**How to apply:**
+- For each component, list its slots first (one row per slot: name, position, alignment, formatting, behaviour rules).
+- For each variant, say which slots are populated and what content rule fills each — not the literal user-facing string.
+- Place mock data in a separate clearly-labelled "illustrative reference" table.
+- Worked examples reference slots, not literal strings.
+
+### Mock Data Variability
+
+If a spec says a property is **variable** (e.g. "3-10 segments", "1-5 lines"), the mock must demonstrate **at least 2 different values** to prove the variability is real. Don't pick one safe number and move on.
+
+**Why:** Single-value mocks hide whether the variable behaviour actually works. A 10-segment bar everywhere doesn't prove a 3-segment bar will render correctly.
+
+### Deferred Features Need Full Restoration Spec
+
+When the user drops a feature from current scope ("park it for next phase", "drop from v1"):
+
+1. Don't just delete the code with a vague TODO.
+2. Add a new section to DESIGN_HANDOVER.md titled `## NN. Deferred to Next Phase`.
+3. For each deferred feature:
+   - **What it was** — visual contract, behaviour, dimensions.
+   - **The HTML / CSS / JS code that was removed** — copy-paste preserved verbatim.
+   - **Why dropped** — the user's stated reason.
+   - **What it superseded** — section numbers in the current spec where it was previously documented.
+4. Update any spec sections that previously included the dropped feature so they reflect the post-removal state.
+
+**Why:** Vague "TBD" notes lose information. Six months later the team has no idea what the dropped pattern looked like, why it was dropped, or how to restore it. Full preservation = cheap reinstatement when the next phase begins.
+
+### Reusable Pattern Library
+
+When a UI pattern is used more than once and lives across projects, extract it as a snippet in `claude-design-toolkit/templates/snippets/`. Current snippets:
+
+- **`phone-rulers.html`** — visible px rulers along the left and bottom of a phone container. Communication shorthand: `x200/y150` for absolute coords, `+5y` / `-3x` for deltas. **Should be a standard starting point for every design project.**
+- **`swipe-row.html`** — Apple-Reminders-style swipe-to-reveal-actions per row. Drag left/right reveals action buttons; tap-to-fire; tap-outside dismisses. iOS equivalent: `.swipeActions(edge:)`.
+
+Notable patterns documented in code comments:
+- **Pin/active state knockout** — solid filled circle (state colour) + same-colour stroke icon "knocks out" against the row background. Clean inactive→active transition.
+- **Behaviour-on-init JS-wrap** — for behaviours like swipe gestures that need a wrapper around each row, inject the wrapper via JS at init rather than hand-coding it in HTML. Keeps mock HTML clean and avoids per-row updates.
+
+When introducing a new reusable pattern, add it to `templates/snippets/` and reference it here.

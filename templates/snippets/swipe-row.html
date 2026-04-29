@@ -1,0 +1,232 @@
+<!--
+Apple-Reminders-style swipe-to-reveal-actions per row.
+
+Drag a row left → reveals action buttons on the right.
+Drag a row right → reveals action buttons on the left.
+Tap row body when open → snaps closed.
+Tap action button → fires action + closes.
+Tap anywhere outside an open row → closes.
+From open state, any release closes (no cross-side opening).
+
+NO LONG-SWIPE COMMIT. Each action requires an explicit tap on its button.
+
+Usage:
+1. Each row in your list must have a class like `.row-item` (rename in selectors below).
+2. Wrap each row at init with the JS — adds .swipe-wrap, action panels, drag listeners.
+3. Customise action button SVGs and colours below.
+4. Wire the action handlers at the bottom — currently they `console.log`.
+
+iOS equivalent: SwiftUI `.swipeActions(edge: .trailing)` and `.swipeActions(edge: .leading)`
+on List rows. Built-in iOS pattern, supports custom buttons + colours per side.
+-->
+
+<style>
+  .swipe-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;     /* match your row's radius */
+  }
+  .swipe-wrap > .row-item {
+    position: relative;
+    z-index: 2;
+    transition: transform 220ms cubic-bezier(0.2, 0.7, 0.3, 1);
+    touch-action: pan-y;     /* allow vertical scroll on parent, capture horizontal */
+  }
+  .swipe-wrap.is-dragging > .row-item { transition: none; }
+  .swipe-actions {
+    position: absolute;
+    top: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .swipe-actions--left  { left: 0; }
+  .swipe-actions--right { right: 0; }
+  .swipe-wrap.is-open-left  .swipe-actions--left,
+  .swipe-wrap.is-open-right .swipe-actions--right { pointer-events: auto; }
+  .swipe-act-cell {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    flex-shrink: 0;
+  }
+  .swipe-act {
+    width: 40px; height: 40px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: currentColor;
+    transition: transform 100ms ease;
+  }
+  .swipe-act:active { transform: scale(0.92); }
+  .swipe-act svg { width: 20px; height: 20px; display: block; }
+  .swipe-act-label {
+    font-family: -apple-system, "SF Pro Display", "SF Pro Text", system-ui;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: currentColor;
+    white-space: nowrap;
+  }
+</style>
+
+<script>
+(function initSwipe(){
+  // ICONS — replace with your own SVG strings keyed by action name.
+  const ICONS = {
+    edit:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>',
+    pin:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><line x1="12" y1="13" x2="12" y2="22"/></svg>',
+  };
+  // LABELS — text under each circle.
+  const LABELS = { edit: 'Edit', delete: 'Delete', pin: 'Pin' };
+  // COLORS — per action.
+  const COLORS = { edit: '#8B5E3C', delete: '#A4000E', pin: '#C49A3D' };
+
+  function makeCell(action) {
+    const cell = document.createElement('div');
+    cell.className = 'swipe-act-cell';
+    cell.style.color = COLORS[action] || '#333';
+    const b = document.createElement('button');
+    b.className = 'swipe-act';
+    b.dataset.action = action;
+    b.setAttribute('aria-label', LABELS[action] || action);
+    b.innerHTML = ICONS[action] || '';
+    const lbl = document.createElement('span');
+    lbl.className = 'swipe-act-label';
+    lbl.textContent = LABELS[action] || action;
+    cell.appendChild(b);
+    cell.appendChild(lbl);
+    return cell;
+  }
+
+  function wrapRow(item, leftActions = [], rightActions = []) {
+    if (item.parentNode.classList.contains('swipe-wrap')) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe-wrap';
+    const left = document.createElement('div');
+    left.className = 'swipe-actions swipe-actions--left';
+    leftActions.forEach(a => left.appendChild(makeCell(a)));
+    const right = document.createElement('div');
+    right.className = 'swipe-actions swipe-actions--right';
+    rightActions.forEach(a => right.appendChild(makeCell(a)));
+    item.parentNode.insertBefore(wrap, item);
+    wrap.appendChild(left);
+    wrap.appendChild(right);
+    wrap.appendChild(item);
+    return { wrap, left, right };
+  }
+
+  let openWrap = null;
+  function closeOpen(except) {
+    if (openWrap && openWrap !== except) {
+      const it = openWrap.querySelector(':scope > .row-item');
+      if (it) it.style.transform = '';
+      openWrap.classList.remove('is-open-left', 'is-open-right');
+    }
+    if (openWrap !== except) openWrap = null;
+  }
+
+  function attachSwipe(parts) {
+    const { wrap, left, right } = parts;
+    const item = wrap.querySelector(':scope > .row-item');
+    let startX = 0, startY = 0, dragging = false, axisLocked = false, baseX = 0, pid = null;
+    const getOffsets = () => ({ L: left.offsetWidth, R: right.offsetWidth });
+    const clamp = (x) => {
+      const { L, R } = getOffsets();
+      // From open state, only allow movement back toward 0 (no cross-side switching).
+      if (baseX > 0) return Math.max(0, Math.min(L, x));
+      if (baseX < 0) return Math.max(-R, Math.min(0, x));
+      return Math.max(-R, Math.min(L, x));
+    };
+    item.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.swipe-act')) return;
+      startX = e.clientX; startY = e.clientY;
+      const m = item.style.transform.match(/translateX\((-?\d+\.?\d*)px\)/);
+      baseX = m ? parseFloat(m[1]) : 0;
+      dragging = true; axisLocked = false; pid = e.pointerId;
+      item.setPointerCapture(pid);
+    });
+    item.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!axisLocked) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        if (Math.abs(dy) > Math.abs(dx)) { dragging = false; return; }
+        axisLocked = true;
+        wrap.classList.add('is-dragging');
+        if (openWrap && openWrap !== wrap) closeOpen(wrap);
+      }
+      item.style.transform = 'translateX(' + clamp(baseX + dx) + 'px)';
+    });
+    function finish(e) {
+      if (!dragging) return;
+      dragging = false;
+      wrap.classList.remove('is-dragging');
+      try { item.releasePointerCapture(pid); } catch(_){}
+      if (!axisLocked) return;
+      const finalX = baseX + ((e.clientX || 0) - startX);
+      const { L, R } = getOffsets();
+      const threshold = 30;
+      let target = 0;
+      if (baseX === 0) {
+        if (finalX > threshold) target = L;
+        else if (finalX < -threshold) target = -R;
+      } else {
+        target = 0;  // From open: any release closes
+      }
+      item.style.transform = 'translateX(' + target + 'px)';
+      wrap.classList.toggle('is-open-left',  target === L && L > 0);
+      wrap.classList.toggle('is-open-right', target === -R && R > 0);
+      if (target !== 0) openWrap = wrap;
+      else if (openWrap === wrap) openWrap = null;
+    }
+    item.addEventListener('pointerup', finish);
+    item.addEventListener('pointercancel', finish);
+    item.addEventListener('click', (e) => {
+      if (axisLocked) return;
+      if (e.target.closest('.swipe-act')) return;
+      if (wrap === openWrap) {
+        item.style.transform = '';
+        wrap.classList.remove('is-open-left', 'is-open-right');
+        openWrap = null;
+      }
+    });
+    [left, right].forEach(panel => {
+      panel.addEventListener('click', (e) => {
+        const btn = e.target.closest('.swipe-act');
+        if (!btn) return;
+        e.stopPropagation();
+        // ACTION HANDLER — wire up your own behaviour here.
+        console.log('[swipe-action]', btn.dataset.action, 'on', item);
+        item.style.transform = '';
+        wrap.classList.remove('is-open-left', 'is-open-right');
+        if (openWrap === wrap) openWrap = null;
+      });
+    });
+  }
+
+  // Tap anywhere outside an open wrap to close it.
+  document.addEventListener('pointerdown', (e) => {
+    if (!openWrap) return;
+    if (e.target.closest('.swipe-wrap') === openWrap) return;
+    if (e.target.closest('.swipe-act')) return;
+    closeOpen(null);
+  }, true);
+
+  // INIT — replace '.row-item' with your row selector.
+  // The 2nd and 3rd args are arrays of action keys that match ICONS/LABELS/COLORS above.
+  document.querySelectorAll('.row-item').forEach(item => {
+    const parts = wrapRow(item, ['pin'], ['edit', 'delete']);
+    if (parts) attachSwipe(parts);
+  });
+})();
+</script>

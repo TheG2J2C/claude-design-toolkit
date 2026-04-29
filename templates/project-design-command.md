@@ -29,6 +29,11 @@ Present a brief summary of:
 7. **Respect LOCKED values** (⚠️ LOCKED in DOM_MAP) -- never change unless user explicitly requests. If your change moves a locked element, revert immediately. Use `transform` to adjust nearby elements.
 8. **Track imports and elements** -- when replacing a UI pattern, list every element from the old pattern and confirm each is removed or repurposed. Don't leave ghost elements behind.
 9. **Clean up unused elements** -- if old backgrounds, pseudo-elements, or imports are no longer needed, ask the user before removing
+10. **Slot-focused docs** — when documenting components, describe SLOTS (position/alignment/formatting/behaviour) — not specific user content. Mock data lives in a separate "Mock Data Reference" table clearly marked illustrative.
+11. **Never invent mock data** the user didn't supply — use placeholders (`XXXX`, `9999`, `DD.MMM`) or ask. Made-up filler silently changes the spec.
+12. **Reference rulers** — if the workbench has visible px rulers (see `templates/snippets/phone-rulers.html`), use the shorthand: `x200/y150` for absolute coords, `+5y` / `-3x` for deltas.
+13. **Mock data variability** — if a spec property is variable (e.g. "3-10 segments"), the mock must show ≥2 different values to demonstrate.
+14. **Deferred features need full restoration spec** — when dropping something for now, preserve the HTML/CSS/JS verbatim in a "Deferred to Next Phase" section, not a vague TODO.
 
 ## 6. Toolkit Sync Check
 At natural breakpoints (end of feature, checkpoint, or ~2 hours of work), review:

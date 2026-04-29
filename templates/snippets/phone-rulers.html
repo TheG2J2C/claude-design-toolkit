@@ -1,0 +1,120 @@
+<!--
+Phone reference rulers — drop into any HTML workbench to add visible px rulers
+along the left and bottom of a phone container.
+
+Origin (0,0) = top-left of the phone. Right = +X, Down = +Y.
+Tick every 10px, label every 50px with `x` / `y` prefix.
+
+Usage:
+1. Wrap your phone container in `<div class="phone-stage">`.
+2. Add the two ruler divs as children.
+3. Paste the CSS into your stylesheet (or keep <style> inline).
+4. Paste the JS at the end of the body (or in a script tag with defer).
+
+Once installed, use the shorthand with the user:
+  - "x200/y150" → absolute phone coords
+  - "+5y" / "-3x" → pixel deltas
+  - "x340-x370 reserved" → a column
+
+Calibration: a tick rendered with style `top:400px` will sit exactly y=400 from
+the phone's top-left corner.
+
+Side ruler: 44px wide. Bottom ruler: 36px tall. Adjust .phone-stage padding to match.
+-->
+
+<style>
+  /* Stage wraps the phone container and reserves space for rulers. */
+  .phone-stage {
+    position: relative;
+    padding: 0 0 36px 44px;   /* bottom ruler height + side ruler width */
+  }
+  .ph-ruler {
+    position: absolute;
+    background: rgba(0,0,0,0.35);
+    user-select: none;
+    pointer-events: none;
+    font-family: -apple-system, "SF Mono", monospace;
+  }
+  .ph-ruler--side   { left: 0;  top: 0; bottom: 36px; width: 44px; }
+  .ph-ruler--bottom { left: 44px; right: 0; bottom: 0; height: 36px; }
+  .ph-tick { position: absolute; background: rgba(255,255,255,0.18); }
+  .ph-tick.major { background: rgba(255,255,255,0.55); }
+  .ph-ruler--side .ph-tick   { left: 36px; right: 2px; height: 1px; }
+  .ph-ruler--side .ph-tick.major { left: 30px; }
+  .ph-ruler--bottom .ph-tick { top: 2px; bottom: 22px; width: 1px; }
+  .ph-ruler--bottom .ph-tick.major { bottom: 16px; }
+  .ph-label {
+    position: absolute;
+    color: rgba(255,255,255,0.7);
+    font-size: 9px;
+    line-height: 1;
+  }
+  .ph-ruler--side .ph-label {
+    left: 3px;
+    transform: translateY(-50%);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .ph-ruler--bottom .ph-label {
+    bottom: 4px;
+    transform: translateX(-50%);
+    text-align: center;
+    white-space: nowrap;
+  }
+</style>
+
+<!-- Wrap your existing phone container in this stage div -->
+<div class="phone-stage">
+  <div class="ph-ruler ph-ruler--side"   id="phRulerSide"></div>
+  <div class="ph-ruler ph-ruler--bottom" id="phRulerBottom"></div>
+
+  <!-- YOUR PHONE CONTAINER GOES HERE -->
+  <!-- e.g. <div class="phone-wrap"> ... </div> -->
+</div>
+
+<script>
+(function buildPhoneRulers() {
+  // Replace '.phone-wrap' below with the selector for your phone container element.
+  // The script reads its actual rendered width and height to populate the rulers.
+  const phone = document.querySelector('.phone-wrap');
+  const rs = document.getElementById('phRulerSide');
+  const rb = document.getElementById('phRulerBottom');
+  if (!phone || !rs || !rb) return;
+  const populate = () => {
+    const h = Math.round(phone.offsetHeight);
+    const w = Math.round(phone.offsetWidth);
+    if (!h || !w) { requestAnimationFrame(populate); return; }
+    rs.innerHTML = ''; rb.innerHTML = '';
+    for (let y = 0; y <= h; y += 10) {
+      const major = (y % 50 === 0);
+      const t = document.createElement('div');
+      t.className = 'ph-tick' + (major ? ' major' : '');
+      t.style.top = y + 'px';
+      rs.appendChild(t);
+      if (major) {
+        const l = document.createElement('div');
+        l.className = 'ph-label';
+        l.style.top = y + 'px';
+        l.textContent = 'y' + y;
+        rs.appendChild(l);
+      }
+    }
+    for (let x = 0; x <= w; x += 10) {
+      const major = (x % 50 === 0);
+      const t = document.createElement('div');
+      t.className = 'ph-tick' + (major ? ' major' : '');
+      t.style.left = x + 'px';
+      rb.appendChild(t);
+      if (major) {
+        const l = document.createElement('div');
+        l.className = 'ph-label';
+        l.style.left = x + 'px';
+        l.textContent = 'x' + x;
+        rb.appendChild(l);
+      }
+    }
+  };
+  if (document.readyState === 'complete') populate();
+  else window.addEventListener('load', populate);
+})();
+</script>

@@ -44,6 +44,20 @@ If comparing against a reference screenshot or design target:
 - Overflow properties
 - New stacking contexts
 
+**UPDATE DESIGN_HANDOVER.md** following the slot-focused convention (see DESIGN_PROTOCOL "Slot-Focused Spec Convention"):
+- Component sections describe slots first (position, alignment, formatting, behaviour) — not specific user content.
+- Variant sections say which slots are populated and what content rule fills each.
+- Mock data lives in a separate "Mock Data Reference" / "Illustrative" table at the end of the section.
+- Worked examples reference slots, not literal strings.
+
+### 5b. Mock Data Variability Check
+
+If the spec describes a property as **variable** (e.g. "3-10 segments", "1-N children", "any of these states"), confirm the mock demonstrates the variability:
+
+- **At least 2 different values** must appear in the mock.
+- A single safe value (e.g. always 10 segments) is FAIL — it doesn't prove the variable behaviour renders correctly.
+- If the mock doesn't demonstrate variability, add or change rows to cover ≥2 values BEFORE reporting "done".
+
 ### 6. Check Against Success Criteria
 
 Go back to the success criteria stated in `design-edit` step 5. Check each one:

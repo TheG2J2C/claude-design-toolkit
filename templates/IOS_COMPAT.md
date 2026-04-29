@@ -39,6 +39,11 @@ The "verified patterns" table below is for items the iOS audit confirmed work as
 | Pull-down panel | `.sheet()` with `presentationDetents([.fraction(), .large])` | Built-in iOS pattern |
 | Pull-up bottom sheet | `.sheet()` with `presentationDetents([.medium, .large])` | Apple Maps pattern |
 | Drag handle with snap | `DragGesture` + `withAnimation` to nearest snap point | |
+| Apple-Reminders-style row swipe (left/right reveals action buttons) | `.swipeActions(edge: .trailing)` and `.swipeActions(edge: .leading)` on `List` rows | Built-in iOS pattern; supports custom buttons + tints per side |
+| Floating action button anchored to phone bottom corner (independent of inner panel state) | parent `ZStack` with `.overlay(alignment: .bottomLeading) { FAB() }` | FAB pinned to outer screen, doesn't move with inner state |
+| Conditional scroll (overflow:hidden until panel fully open, then auto + reset to top on close) | `ScrollViewReader` + `.scrollDisabled(!atMaxOpen)` + `.scrollTo(.top)` on close | iOS 16+ for `.scrollDisabled` |
+| Variable-segment progress bar (3-10 segments stretch to fill same total width) | `HStack(spacing: 2) { ForEach(0..<count) { Rectangle().frame(maxWidth: .infinity) } }` | flex:1 children → infinity-frame |
+| Percentage progress bar (continuous fill) | `GeometryReader { Rectangle().fill(color).frame(width: geo.size.width * progress) }` over track, or `ProgressView(value:)` with custom style | |
 | CSS transitions | `withAnimation(.easeInOut(duration:))` | |
 | CSS @keyframes | `Animation` protocol or `TimelineView` | |
 | :hover states | Don't exist on iOS | |

@@ -77,9 +77,11 @@ claude mcp add ios-simulator -- npx ios-simulator-mcp
 |------|---------|
 | `templates/DOM_MAP.md` | Template for tracking the DOM hierarchy, stacking contexts, z-index scale, and overflow boundaries. The structural truth of the page. |
 | `templates/IOS_COMPAT.md` | Maps HTML/CSS patterns to SwiftUI equivalents. Prevents using CSS tricks that have no iOS translation. |
-| `templates/DESIGN_PROTOCOL.md` | Rules appended to a project's CLAUDE.md that enforce confirmation-before-coding, one-change-at-a-time, plain-English decisions, and proper design communication. |
+| `templates/DESIGN_PROTOCOL.md` | Rules appended to a project's CLAUDE.md that enforce confirmation-before-coding, one-change-at-a-time, plain-English decisions, slot-focused spec writing, no-invented-mock-data, deferred-features handling, and proper design communication. |
 | `templates/project-design-command.md` | Template for per-project design resume commands. Filled in by /design-setup with project-specific values. |
 | `templates/hooks/validate-design-files.sh` | PostToolUse hook that validates SVG (XML parse) and HTML after every Edit/Write. Catches malformed markup immediately. |
+| `templates/snippets/phone-rulers.html` | Drop-in CSS+JS for visible px rulers along the left and bottom of a phone container. Origin (0,0) at phone top-left. Enables `x200/y150` shorthand with the user. **Recommended starting point for every workbench.** |
+| `templates/snippets/swipe-row.html` | Drop-in CSS+JS for Apple-Reminders-style swipe-to-reveal-actions on list rows. Drag left/right reveals action buttons; tap-to-fire; tap-outside dismisses. iOS equivalent: `.swipeActions(edge:)`. |
 
 ## The Workflow It Enforces
 

@@ -111,6 +111,9 @@ These rules are non-negotiable. Violating any of them requires stopping and reas
 - **Never** change a LOCKED value (marked with LOCKED in DOM_MAP.md) unless the user explicitly requests it. If your change moves a locked element, you made a mistake — revert immediately.
 - **Never** adjust siblings of locked elements using `margin` or `padding` — use `transform: translateX/Y()` instead, which moves visually without affecting layout flow.
 - **Never present colours as hex codes alone.** Humans can't read hex. When proposing colour options or showing a palette, render visual swatches in the mockup file (or generate a quick swatch HTML and screenshot it). A hex table without colour blocks is unreadable feedback.
+- **Never invent mock data the user didn't supply.** If a row/cell needs a label, value, unit, day, schedule, etc. that the user hasn't specified, ASK or use a literal placeholder (`XXXX`, `9999`, `DD.MMM`). Do NOT make up filler ("FRI", "WED", "Yoga", "$3000") — invented mock data silently changes the spec and gets baked in as if it were intentional.
+- **Never patch a structural problem with a band-aid surface.** When you see a gap in a layout where the colour underneath shows through, ask what the underneath should be FIRST. If two same-colour surfaces have a gap and a third matching surface "fixes" it, you're probably hiding a structural problem (e.g. dead content beneath that should be removed). Surface the diagnosis to the user before patching.
+- **Slot-first thinking when documenting components.** When updating DOM_MAP or DESIGN_HANDOVER, describe SLOTS (position, alignment, formatting, behaviour) — not specific user content. Mock content goes in a separate "illustrative reference" table. See DESIGN_PROTOCOL "Slot-Focused Spec Convention".
 
 ## Replacing UI Patterns
 
