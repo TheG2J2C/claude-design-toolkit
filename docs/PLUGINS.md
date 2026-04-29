@@ -2,9 +2,9 @@
 
 | Plugin | Version | Status | Description |
 |---|---|---|---|
-| `design-core` | 1.0.0 | stable | Skills, agents, hooks, commands, templates. Required for every design project. |
-| `design-tokens` | — | planned | W3C Design Tokens 2025.10 + Style Dictionary integration. Will spin out when first project hits the iOS build phase. |
-| `design-handoff` | — | planned | Acceptance-criteria runner + automated drift checker against built apps. Will spin out when first project ships. |
+| `design-core` | 1.0.0 | stable | Skills, 6 agents, 2 hooks (validate + TaskCompleted), commands, templates. **Required** for every design project. |
+| `design-tokens` | 1.0.0 | stable | W3C Design Tokens 2025.10 + zero-dep build script generating Swift/CSS/JSON. Install when targeting iOS / Android / multi-platform. |
+| `design-handoff` | 1.0.0 | stable | Acceptance-criteria runner + drift-checker CLI + handoff-validator agent + `/handoff-check` slash command. Install when project is ready to hand to an iOS engineer (or another Claude). |
 
 ## design-core
 
@@ -37,6 +37,7 @@ When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set, the same files double as A
 | Hook | Event | What it does |
 |---|---|---|
 | `validate-design-files.sh` | PostToolUse on Edit/Write | Validates SVG (XML parse) and HTML (basic parse) immediately after each edit. Blocks on parse failure. |
+| `task-completed-acceptance-check.sh` | TaskCompleted (Agent Teams) | Quality gate — if a workbench file changed but no `docs/components/<slug>.md` was touched, blocks task completion with feedback. Bypass: `SKIP_ACCEPTANCE_CHECK=1`. |
 
 ### Commands
 
@@ -56,3 +57,48 @@ When `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` is set, the same files double as A
 - `SOURCES.md` — reading list (W3C tokens, DESIGN.md, pixel-perfect handoff, etc.)
 - `snippets/phone-rulers.html` — drop-in phone reference rulers
 - `snippets/swipe-row.html` — Apple-Reminders-style swipe-action row template
+
+---
+
+## design-tokens
+
+### Templates
+
+- `templates/tokens.json` — W3C Design Tokens Format 2025.10 starter (colours, type, spacing, shadows, radius, z-index)
+- `templates/tokens.md` — human-readable mirror with rationale
+
+### Scripts
+
+- `scripts/build-tokens.js` — zero-dep generator. Reads `docs/tokens.json`, writes:
+  - `generated/tokens.css` — CSS custom properties
+  - `generated/Tokens.swift` — Swift extensions (Color + Spacing + Radius + ZIndex enums)
+  - `generated/tokens.flat.json` — flattened key→value JSON for any other tool
+- For richer output (Kotlin, Android XML, etc.), use Style Dictionary properly: `npm i -D style-dictionary` and write `config.js`.
+
+### Commands
+
+- `/generate-tokens` — symlinks the build script into `tools/` and runs it.
+
+---
+
+## design-handoff
+
+### Scripts
+
+- `scripts/check-acceptance.js` — reads every `docs/components/<slug>.md`, parses YAML frontmatter `locked_values` + `## Acceptance Criteria`, runs Puppeteer against the workbench, emits `acceptance-report.md` with mechanical PASS/FAIL/SKIP + manual review backlog.
+- `scripts/check-drift.js` — diffs each component's `dom_anchor` + `locked_values` against the workbench DOM. Pass `--all` for full sweep, `<slug>` for one.
+
+### Agents
+
+- `handoff-validator` — runs the full sweep and writes a single `HANDOFF-READINESS.md` report. Use before handing the project off.
+
+### Commands
+
+- `/handoff-check` — symlinks the runner scripts into `tools/`, spawns the `handoff-validator` agent, surfaces blockers.
+
+### Workflow
+
+1. Install: `/plugin install design-handoff`
+2. Run mechanical check anytime: `node tools/check-drift.js --all`
+3. Run full audit before handoff: `/handoff-check`
+4. Fix blockers, re-run until READY

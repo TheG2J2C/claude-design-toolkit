@@ -20,7 +20,8 @@
       "agents/adversarial-critic.md"
     ],
     "hooks": [
-      "hooks/validate-design-files.sh"
+      "hooks/validate-design-files.sh",
+      "hooks/task-completed-acceptance-check.sh"
     ],
     "commands": [
       "commands/design-setup.md"

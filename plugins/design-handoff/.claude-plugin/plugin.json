@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "design-handoff",
+  "version": "1.0.0",
+  "description": "Acceptance-criteria runner + drift checker CLI for end-stage design projects. Mechanically tests workbench DOM against component specs. Use when handing the project to an iOS engineer (or another Claude) to recreate.",
+  "author": "TheG2J2C",
+  "license": "MIT",
+  "homepage": "https://github.com/TheG2J2C/keys-design-toolkit/tree/main/plugins/design-handoff",
+  "components": {
+    "scripts": [
+      "scripts/check-acceptance.js",
+      "scripts/check-drift.js"
+    ],
+    "agents": [
+      "agents/handoff-validator.md"
+    ],
+    "commands": [
+      "commands/handoff-check.md"
+    ]
+  }
+}

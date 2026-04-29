@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin.json",
+  "name": "design-tokens",
+  "version": "1.0.0",
+  "description": "W3C Design Tokens 2025.10 template + build script that generates Swift, CSS, and Kotlin constants. Install when starting an iOS / Android / multi-platform project.",
+  "author": "TheG2J2C",
+  "license": "MIT",
+  "homepage": "https://github.com/TheG2J2C/keys-design-toolkit/tree/main/plugins/design-tokens",
+  "components": {
+    "scripts": [
+      "scripts/build-tokens.js"
+    ],
+    "commands": [
+      "commands/generate-tokens.md"
+    ]
+  },
+  "templates_dir": "templates"
+}
