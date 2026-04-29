@@ -9,17 +9,27 @@ Resume the {{PROJECT_NAME}} Design workbench. Complete each step before moving t
 ## 2. Verify Workbench Files
 Confirm the key project files exist. If any are missing, flag immediately.
 
-## 3. Verify Tools
+## 3. Audit Folder (housekeeping)
+- `ls -la` the project root, every subfolder, and `_archive/`
+- Compare against the README map. Anything that does NOT fit one of these categories is "out of place":
+  - Live files in their owning folders (workbench/, assets/, docs/, tools/, .claude/, root-level canonical docs, README, .mcp.json — adapt to the project's actual layout)
+  - Per-folder `_archive/` (e.g. workbench/_archive/, assets/<x>/_archive/)
+  - Top-level `_archive/` (cross-cutting historicals)
+- Treat as out of place: stray files at root, unprefixed `*_checkpoint.*` or `*_pre-*.*` files, `.DS_Store` files, files in folders they don't belong to (e.g. PNGs at root, HTMLs in assets/, PDFs in workbench/), files older than 14 days in active folders that aren't referenced anywhere.
+- For each out-of-place item: state it briefly, propose where it should live (or whether to archive/delete), wait for user confirmation. Do NOT auto-move.
+- If everything looks tidy, say so in one line and continue.
+
+## 4. Verify Tools
 - Check Puppeteer MCP is connected (try a test screenshot)
 - Check any other required MCPs
 
-## 4. Current State
+## 5. Current State
 Present a brief summary of:
 - What's working
 - What's in progress
 - What's next
 
-## 5. Rules (always follow)
+## 6. Rules (always follow)
 1. **Confirm understanding** before coding -- repeat back in plain English
 2. **Check DOM_MAP.md** before any structural change
 3. **Screenshot before and after** every change (Puppeteer MCP) — unless user is giving rapid instructions, then batch at pauses
@@ -35,13 +45,13 @@ Present a brief summary of:
 13. **Mock data variability** — if a spec property is variable (e.g. "3-10 segments"), the mock must show ≥2 different values to demonstrate.
 14. **Deferred features need full restoration spec** — when dropping something for now, preserve the HTML/CSS/JS verbatim in a "Deferred to Next Phase" section, not a vague TODO.
 
-## 6. Toolkit Sync Check
+## 7. Toolkit Sync Check
 At natural breakpoints (end of feature, checkpoint, or ~2 hours of work), review:
 - New rules, skills, or workflow patterns discovered in this project
 - Improvements to DOM_MAP notation, iOS compat findings, or communication techniques
 - Mistakes made and lessons learned that should become universal rules
 Suggest upstreaming anything universal to the claude-design-toolkit repo (~/projects/claude-design-toolkit). Ask user before pushing.
 
-## 7. Ready
+## 8. Ready
 - Present status
 - Ask what the user wants to work on

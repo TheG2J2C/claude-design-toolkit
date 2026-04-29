@@ -102,7 +102,29 @@ Use the toolkit templates to create project-specific files. The templates are lo
 - `~/projects/claude-design-toolkit/templates/DOM_MAP.md`
 - `~/projects/claude-design-toolkit/templates/IOS_COMPAT.md`
 - `~/projects/claude-design-toolkit/templates/DESIGN_PROTOCOL.md`
+- `~/projects/claude-design-toolkit/templates/FOLDER_STRUCTURE.md`
 - `~/projects/claude-design-toolkit/templates/project-design-command.md`
+
+### 3.0 Establish Folder Structure (BEFORE creating files)
+
+Before creating any new files, set up the recommended folder structure from `templates/FOLDER_STRUCTURE.md`:
+
+```
+project-root/
+├── README.md            ← create from FOLDER_STRUCTURE template, customised
+├── DESIGN_HANDOVER.md   ← canonical spec
+├── DOM_MAP.md           ← structural truth
+├── IOS_COMPAT.md        ← (iOS only)
+├── workbench/_components/  workbench/_archive/{checkpoints,rollbacks}/
+├── assets/{layout,palette,shapes}/  (rig/ if animation rig present)
+├── docs/source-specs/
+├── tools/
+└── _archive/{docs,reference-pdfs,reference-images,gemini-runs}/
+```
+
+If the project already exists with a flat root layout, surface this as a "restructure recommended" finding — don't auto-move existing files. Show the user `templates/FOLDER_STRUCTURE.md` and ask whether to restructure now or defer.
+
+Create a `README.md` at project root populated from the FOLDER_STRUCTURE template, customised to the actual project file types.
 
 ### 3a. Create DOM_MAP.md
 Read the template from `~/projects/claude-design-toolkit/templates/DOM_MAP.md` and copy it to the current project directory as `DOM_MAP.md`. If there are existing HTML files in the project, attempt to populate the DOM structure from them.
