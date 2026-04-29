@@ -3,25 +3,42 @@
   "name": "claude-design-toolkit",
   "version": "1.1.0",
   "description": "Production-grade design workflow for Claude Code — atomic doc structure, slot-focused component specs, W3C tokens, agent role files, mandatory pre/post-flight skills, handoff readiness.",
-  "author": "TheG2J2C",
+  "owner": {
+    "name": "TheG2J2C"
+  },
   "license": "MIT",
   "homepage": "https://github.com/TheG2J2C/claude-design-toolkit",
   "auto_update": true,
   "plugins": [
     {
       "name": "design-core",
-      "path": "plugins/design-core",
-      "description": "REQUIRED. Core skills (design-edit, design-verify), 6 agent role files, validation hook, TaskCompleted quality gate, design-setup command, all templates."
+      "description": "REQUIRED. Core skills (design-edit, design-verify), 6 agent role files, validation hook, TaskCompleted quality gate, design-setup command, all templates.",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/TheG2J2C/claude-design-toolkit.git",
+        "path": "plugins/design-core",
+        "ref": "main"
+      }
     },
     {
       "name": "design-tokens",
-      "path": "plugins/design-tokens",
-      "description": "OPTIONAL. W3C Design Tokens 2025.10 template + build script that generates Swift / CSS / JSON constants. Install when targeting iOS / Android / multi-platform."
+      "description": "OPTIONAL. W3C Design Tokens 2025.10 template + build script that generates Swift / CSS / JSON constants. Install when targeting iOS / Android / multi-platform.",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/TheG2J2C/claude-design-toolkit.git",
+        "path": "plugins/design-tokens",
+        "ref": "main"
+      }
     },
     {
       "name": "design-handoff",
-      "path": "plugins/design-handoff",
-      "description": "OPTIONAL. Acceptance-criteria runner + drift-checker CLI + handoff-validator agent. Install when project is ready to hand to an iOS engineer (or another Claude)."
+      "description": "OPTIONAL. Acceptance-criteria runner + drift-checker CLI + handoff-validator agent. Install when project is ready to hand to an iOS engineer (or another Claude).",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/TheG2J2C/claude-design-toolkit.git",
+        "path": "plugins/design-handoff",
+        "ref": "main"
+      }
     }
   ]
 }
