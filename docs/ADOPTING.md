@@ -1,10 +1,10 @@
 # Adopting `claude-design-toolkit`
 
-Two paths — pick one. The marketplace path is the 2026 default. The legacy `install.sh` path stays around for one release as a backstop.
+Adoption is via the Claude Code plugin marketplace. The legacy `install.sh` has been retired (it predated the SKILL.md-in-a-directory layout and is no longer compatible).
 
 ---
 
-## Path A — Plugin marketplace (recommended, 2026+)
+## Plugin marketplace install
 
 In your project's `.claude/settings.json` (create if missing):
 
@@ -61,22 +61,6 @@ To enable Agent Teams (so the 6 agent files double as teammate roles):
   }
 }
 ```
-
----
-
-## Path B — Legacy install.sh (deprecated, removed in v2.0.0)
-
-For projects that haven't migrated to the plugin system, the old install method still works:
-
-```bash
-git clone https://github.com/TheG2J2C/claude-design-toolkit.git ~/projects/claude-design-toolkit
-cd ~/projects/claude-design-toolkit
-./install.sh
-```
-
-This copies skills to `~/.claude/skills/`, the hook to your project, etc. It's manual. It doesn't auto-update. It's deprecated.
-
-Migrate to Path A when you can.
 
 ---
 

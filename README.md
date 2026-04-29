@@ -2,7 +2,7 @@
 
 A Claude Code **plugin marketplace** that gives Claude the skills, agent role files, hooks, and templates needed to do frontend/UI design work properly.
 
-> **Restructured 2026-04-29 as a Claude Code plugin marketplace.** Adoption is now one settings.json line + `/plugin install design-core` — no more `install.sh` ritual. See [docs/ADOPTING.md](docs/ADOPTING.md). The legacy install.sh remains as a backstop for one release.
+> **Restructured 2026-04-29 as a Claude Code plugin marketplace.** Adoption is now one settings.json line + `/plugin install design-core`. See [docs/ADOPTING.md](docs/ADOPTING.md). The legacy `install.sh` has been retired.
 
 ---
 
@@ -53,7 +53,7 @@ claude-design-toolkit/
 ├── .github/workflows/
 │   └── validate-plugins.yml      ← CI: validate manifests, frontmatter, hooks on every PR
 ├── docs/
-│   ├── ADOPTING.md               ← How to install + migrate from install.sh
+│   ├── ADOPTING.md               ← How to install
 │   └── PLUGINS.md                ← What each plugin / skill / agent does
 ├── plugins/
 │   └── design-core/
@@ -65,7 +65,7 @@ claude-design-toolkit/
 │       ├── hooks/
 │       ├── commands/
 │       └── templates/
-├── install.sh                     ← Legacy install (deprecated, still works)
+├── install.sh                     ← Retired stub — prints upgrade instructions
 └── README.md                      ← (this file)
 ```
 
