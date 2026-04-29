@@ -32,7 +32,8 @@ That's it. You now have:
 - ✓ `design-edit` skill (auto-activates on workbench file edits)
 - ✓ `design-verify` skill (auto-activates on workbench file edits)
 - ✓ 6 agent role files (`design-reviewer`, `drift-checker`, `doc-extractor`, `ios-translator`, `token-auditor`, `adversarial-critic`) — usable as subagents AND Agent Team teammates
-- ✓ `validate-design-files.sh` hook (auto-validates SVG/HTML on edit)
+- ✓ `validate-design-files.sh` hook (auto-validates SVG/HTML on Edit/Write)
+- ✓ `task-completed-acceptance-check.sh` hook (TaskCompleted gate: workbench edits must be paired with a spec-file edit; needs `jq`)
 - ✓ `/design-setup` slash command for new-project bootstrap
 - ✓ All templates (DOM_MAP, IOS_COMPAT, FOLDER_STRUCTURE, DOC_STRUCTURE, component-template, project-design-command, SOURCES, snippets/)
 

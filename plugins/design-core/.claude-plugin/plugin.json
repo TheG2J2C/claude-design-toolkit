@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "design-core",
-  "version": "1.0.0",
-  "description": "Mandatory skills (design-edit, design-verify), 6 reusable agent role files, validation hook, design-setup command, and templates for the atomic doc + W3C tokens pattern.",
+  "version": "1.0.1",
+  "description": "Mandatory skills (design-edit, design-verify), 6 reusable agent role files, two hooks (SVG/HTML validation + TaskCompleted acceptance gate), design-setup command, and templates for the atomic doc + W3C tokens pattern.",
   "author": {
     "name": "TheG2J2C",
     "url": "https://github.com/TheG2J2C"

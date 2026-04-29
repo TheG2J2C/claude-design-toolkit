@@ -12,7 +12,7 @@ Install one plugin (`design-core`); receive:
 
 - **2 mandatory skills** — `design-edit` (pre-flight) and `design-verify` (post-flight). Auto-activate on workbench file edits.
 - **6 agent role files** — `design-reviewer`, `drift-checker`, `doc-extractor`, `ios-translator`, `token-auditor`, `adversarial-critic`. Usable as subagents AND (with the experimental flag) as Agent Team teammates. Same file works both ways — see [Anthropic docs](https://code.claude.com/docs/en/agent-teams).
-- **1 validation hook** — `validate-design-files.sh`. Auto-validates SVG/HTML on Edit/Write.
+- **2 hooks** — `validate-design-files.sh` auto-validates SVG/HTML on Edit/Write; `task-completed-acceptance-check.sh` is the TaskCompleted acceptance gate (workbench changes must be paired with spec-file changes).
 - **1 slash command** — `/design-setup` to bootstrap a new project's content.
 - **All templates** — DOM_MAP, IOS_COMPAT, FOLDER_STRUCTURE, DOC_STRUCTURE, component-template, project-design-command, SOURCES, snippets/.
 
