@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<!--
+============================================================================
+ character-page.html — REUSABLE TEMPLATE
+============================================================================
+ Copy this file out of /workbench/_templates/ to /workbench/<screen>.html
+ and customise the marked sections. The template captures the locked
+ design pattern shared across:
+
+   - Onboarding (5 pages, page 1 has 2-stage input)
+   - Rehoming screens
+   - Re-foster welcome
+   - Strike Ladder screens (1, 2, 3)
+   - Anywhere a character (Bill, Frankie, etc.) speaks via typewriter
+
+ ----------------------------------------------------------------------------
+ What's reusable (don't change unless you mean to):
+ ----------------------------------------------------------------------------
+   • Cream rounded rectangle + dark outer frame layout
+   • Character image anchored bottom-left (in front of rectangle)
+   • BillWrap module — per-line text wrap around the character's silhouette
+       with configurable padding (start at 20 px). Uses real silhouette
+       extracted from the character SVG by canvas pixel scan.
+   • Typewriter that types char-by-char, paragraph-by-paragraph,
+       with /Para = block + 21 px margin (≈ 30 px visible at 22 px font)
+   • Tap-to-skip typing
+   • Bottom strip: back (clears character) · dots · next (right cluster)
+       — all 40 px brown circles with CSS chevrons
+   • Page label "n / N" top-right inside cream
+   • Frankie reveal helper (image + bold heading, scale-in animation,
+       centered between character's right + padding and cream right edge)
+   • Debug overlay (Debug button) — toggles grid + silhouette + coord readout
+
+ ----------------------------------------------------------------------------
+ What to customise per screen (search for "TEMPLATE:"):
+ ----------------------------------------------------------------------------
+   1. --color-dark — outer frame colour. Onboarding/welcome = #687a89.
+        Strike screens = #2C160E. Other screens TBD.
+   2. <img class="ob-bill" src="..."> — character SVG path. Onboarding uses
+        bill-standing.svg. Strike screens may use a different Bill pose.
+   3. BillWrap.silhouette.rightEdge — re-measure if the character changes.
+        See pixel-scan helper at the bottom of the script.
+   4. PAGES array — page-specific content (paragraphs, extras, multiStage,
+        requireInput). One entry per page; set TOTAL_PAGES to the array length.
+   5. Title in <head> — match the screen.
+   6. Last-page Next CTA label (currently "Get Started") — change for re-foster
+        ("Welcome Back"), Strike 1 ("OK"), Strike 3 ("Restart"), etc.
+
+ ----------------------------------------------------------------------------
+ Path note:
+ ----------------------------------------------------------------------------
+   The template's relative paths (src/components/rulers.css, ../assets/...)
+   assume it lives at /workbench/<file>.html. If you copy it deeper, fix paths.
+============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Character Page — Template</title>
+<link rel="stylesheet" href="src/components/rulers.css">
+<style>
+  :root {
+    --color-cream: #FFF8F0;
+    /* Onboarding uses a darker blue/grey as the outer frame.
+       Strike screens (1/2/3) use dark red/brown #2C160E instead — reserved for that mood. */
+    --color-dark: #687a89;
+    --color-text-primary: #2C160E;
+    --color-text-secondary: #6F4627;
+    --color-accent: #8B5E3C;
+    --color-border: #D9D2C9;
+    --color-body: #C49A3D;
+    --color-mind: #3D8B8B;
+    --color-routine: #7B6E9E;
+    --shadow-standard: 0 2px 3px rgba(0,0,0,0.12);
+
+    --phone-w: 390px;
+    --phone-h: 884px;
+
+    --rect-margin: 16px;
+    --rect-radius: 28px;
+    --rect-pad-x: 28px;
+    --rect-pad-top: 56px;
+
+    --bill-h: 486px;
+    --bill-clear-x: 170px;
+
+    --typewriter-speed-ms: 50;
+  }
+
+  body {
+    margin: 0;
+    background: #2a2a2a;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 60px 60px 100px;
+    color: #fff;
+  }
+
+  .phone-stage { display: inline-block; }
+
+  .hp-wrap {
+    position: relative;
+    width: var(--phone-w);
+    height: var(--phone-h);
+    background: var(--color-dark);
+    overflow: hidden;
+  }
+
+  .ob-rect {
+    position: absolute;
+    top: var(--rect-margin);
+    left: var(--rect-margin);
+    right: var(--rect-margin);
+    bottom: var(--rect-margin);
+    background: var(--color-cream);
+    border-radius: var(--rect-radius);
+    z-index: 1;
+  }
+
+  .ob-page-label {
+    position: absolute;
+    top: calc(var(--rect-margin) + 16px);
+    right: calc(var(--rect-margin) + 22px);
+    z-index: 5;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(44, 22, 14, 0.5);
+    font-family: -apple-system, "SF Pro Text", sans-serif;
+    letter-spacing: 0.5px;
+  }
+
+  .ob-text {
+    position: absolute;
+    top: calc(var(--rect-margin) + var(--rect-pad-top));
+    left: calc(var(--rect-margin) + var(--rect-pad-x));
+    right: calc(var(--rect-margin) + var(--rect-pad-x));
+    z-index: 2;
+    color: var(--color-text-primary);
+    font-size: 22px;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  /* Page-1 second-stage text — 30px VISIBLE below the name input.
+     Input top = 186, height = 44 → bottom = 230. +25.6 → top 256.
+     Stage 2 flows full-width; once it reaches y=378 (= 20px clear of Bill's head),
+     it wraps to the right of a 146px obstruction (= 20px clear of Bill's right edge). */
+  .ob-text-2 {
+    position: absolute;
+    top: 256px;
+    left: calc(var(--rect-margin) + var(--rect-pad-x));
+    right: calc(var(--rect-margin) + var(--rect-pad-x));
+    bottom: calc(var(--rect-margin) + 100px);
+    z-index: 2;
+    color: var(--color-text-primary);
+    font-size: 22px;
+    line-height: 1.4;
+    font-weight: 500;
+    display: none;
+    overflow: hidden;
+  }
+  /* /Para = new line + 30px VISIBLE gap (glyph-to-glyph).
+     CSS margin = 30 − 2×4.4 (line-height leading) = 21.2 → 21px.
+     Descendant selector (no `>`) because Stage 2 paragraphs live inside an inner span. */
+  .ob-text .ob-para,
+  .ob-text-2 .ob-para {
+    margin: 0;
+  }
+  .ob-text .ob-para + .ob-para,
+  .ob-text-2 .ob-para + .ob-para {
+    margin-top: 21px;
+  }
+  .ob-text-2.visible { display: block; }
+  /* Each rendered line of typed text is its own block.
+     margin-left is set inline per line by BillWrap (per-line indent based on Bill's silhouette). */
+  .ob-text .ob-line, .ob-text-2 .ob-line { display: block; }
+
+  /* Debug grid (toggleable) — fine 10px + major 50px lines covering the phone area.
+     Use with the on-screen rulers to read off silhouette x values at specific y. */
+  .debug-grid, .debug-grid-major {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+  }
+  body.debug .debug-grid, body.debug .debug-grid-major { display: block; }
+  .debug-grid {
+    background-image:
+      linear-gradient(to right, rgba(255, 60, 60, 0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 60, 60, 0.10) 1px, transparent 1px);
+    background-size: 10px 10px;
+  }
+  .debug-grid-major {
+    background-image:
+      linear-gradient(to right, rgba(255, 60, 60, 0.32) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 60, 60, 0.32) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: 51;
+  }
+  /* Bill silhouette overlay — draws the CURRENT BillWrap anchors as a connected line.
+     Lets us compare what the data thinks Bill's right edge is vs what's actually drawn. */
+  .silhouette-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 52;
+    display: none;
+  }
+  body.debug .silhouette-overlay { display: block; }
+  /* Coordinate readout (top-right of screen, follows mouse over phone) */
+  .coord-readout {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-family: -apple-system, "SF Mono", monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    z-index: 200;
+    display: none;
+  }
+  body.debug .coord-readout { display: block; }
+
+  /* The "extras" container — anything below the typed text per page.
+     Page 1: name input row sits directly under "What should I call you?" — no /Para gap.
+     Stage 1 box-bottom ≈ y186 → ob-extras top = 186. */
+  .ob-extras {
+    position: absolute;
+    top: 186px;
+    left: calc(var(--rect-margin) + var(--rect-pad-x));
+    right: calc(var(--rect-margin) + var(--rect-pad-x));
+    bottom: calc(var(--rect-margin) + 100px);
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .ob-extras.visible { opacity: 1; pointer-events: auto; }
+
+  /* Page 1 — name input + inline submit */
+  .ob-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ob-name-input {
+    flex: 1;
+    min-width: 0;
+    height: 44px;          /* explicit so layout math doesn't drift */
+    padding: 0 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 14px;
+    font-size: 16px;
+    box-sizing: border-box;
+    background: #fff;
+    font-family: inherit;
+    color: var(--color-text-primary);
+    outline: none;
+  }
+  .ob-name-input:focus { border-color: var(--color-accent); }
+  .ob-name-submit {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    box-shadow: var(--shadow-standard);
+    opacity: 0.4;
+    transition: opacity 0.3s;
+    flex-shrink: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ob-name-submit.enabled { opacity: 1; }
+  .ob-name-submit.enabled:active { transform: scale(0.94); }
+
+  /* Frankie reveal element (own paragraph, centered horizontally in the full cream area).
+     Uses flex column so both the fig and the heading land dead-centre regardless of
+     wrap context around them. */
+  .ob-frankie-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .ob-frankie-fig {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    transform: scale(2.4);
+    opacity: 0;
+    transform-origin: center;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease-out;
+  }
+  .ob-frankie-fig.revealed {
+    transform: scale(1);
+    opacity: 1;
+  }
+  .ob-frankie-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .ob-frankie-name {
+    display: block;
+    margin-top: 6px;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--color-text-primary);
+    opacity: 0;
+    transition: opacity 0.4s ease 0.2s;
+  }
+  .ob-frankie-name.revealed { opacity: 1; }
+
+  /* Page 2 — Frankie placeholder (separate, below-Bill version) */
+  .ob-frankie-placeholder {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 168px;
+    height: 220px;
+    background: rgba(0,0,0,0.04);
+    border: 2px dashed rgba(44,22,14,0.25);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: rgba(44,22,14,0.55);
+    font-size: 13px;
+  }
+  .ob-frankie-placeholder .pup-emoji { font-size: 56px; }
+
+  /* Page 3 — category cards */
+  .ob-cat-list { display: flex; flex-direction: column; gap: 12px; }
+  .ob-cat-card {
+    background: #fff;
+    border: 1.5px solid var(--color-border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+  }
+  .ob-cat-card .cat-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ob-cat-card.body .cat-dot { background: var(--color-body); }
+  .ob-cat-card.mind .cat-dot { background: var(--color-mind); }
+  .ob-cat-card.routine .cat-dot { background: var(--color-routine); }
+  .ob-cat-card .cat-text { display: flex; flex-direction: column; gap: 2px; }
+  .ob-cat-card .cat-name { font-weight: 600; font-size: 16px; color: var(--color-text-primary); }
+  .ob-cat-card .cat-blurb { font-size: 12px; color: var(--color-text-secondary); }
+  .ob-cat-card.selected { border-color: var(--color-accent); border-width: 2px; }
+  .ob-cat-card:active { transform: scale(0.99); }
+
+  /* Page 4 — bullet list */
+  .ob-bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .ob-bullet {
+    display: flex; gap: 10px;
+  }
+  .ob-bullet::before {
+    content: "•";
+    color: var(--color-accent);
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+
+  /* Page 5 — starter kit */
+  .ob-starter {
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .ob-bones-line {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 22px; font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .ob-bones-line .bone { font-size: 28px; }
+  .ob-starter-habits {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 14px; color: var(--color-text-secondary);
+  }
+  .ob-starter-habits .h-row {
+    display: flex; gap: 10px; align-items: center;
+  }
+  .ob-starter-habits .h-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .ob-starter-habits .h-row.body .h-dot { background: var(--color-body); }
+  .ob-starter-habits .h-row.mind .h-dot { background: var(--color-mind); }
+  .ob-starter-habits .h-row.routine .h-dot { background: var(--color-routine); }
+
+  /* Bill standing */
+  .ob-bill {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: var(--bill-h);
+    width: auto;
+    z-index: 3;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Bottom strip */
+  .ob-strip {
+    position: absolute;
+    bottom: calc(var(--rect-margin) + 28px);
+    left: calc(var(--rect-margin) + var(--rect-pad-x));
+    right: calc(var(--rect-margin) + var(--rect-pad-x));
+    height: 40px;
+    z-index: 4;
+  }
+
+  /* Back button — same visual format as the next button: brown circle, white chevron, shadow. */
+  .ob-back {
+    position: absolute;
+    left: calc(var(--bill-clear-x) - var(--rect-margin) - var(--rect-pad-x));
+    top: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: var(--color-accent);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    box-shadow: var(--shadow-standard);
+  }
+  .ob-back.hidden { display: none; }
+  .ob-back:active { transform: scale(0.94); }
+
+  .ob-right-cluster {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .ob-dots { display: flex; gap: 8px; }
+  .ob-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(44, 22, 14, 0.18);
+    transition: background 0.2s;
+  }
+  .ob-dot.active { background: var(--color-text-primary); }
+
+  .ob-next {
+    height: 40px;
+    border-radius: 20px;
+    background: var(--color-accent);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    box-shadow: var(--shadow-standard);
+    opacity: 0.4;
+    transition: opacity 0.3s, background-color 0.2s;
+    flex-shrink: 0;
+    padding: 0 14px;
+    font-family: inherit;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ob-next.icon-only { width: 40px; padding: 0; }
+  .ob-next.cta { padding: 0 18px; font-size: 14px; }
+
+  /* CSS chevrons — perfectly centered, no glyph baseline issues */
+  .ob-chev {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+  }
+  .ob-chev-right { transform: rotate(45deg) translate(-1px, 1px); }
+  .ob-chev-left  { transform: rotate(-135deg) translate(-1px, 1px); }
+  .ob-next.enabled { opacity: 1; }
+  .ob-next.enabled:active { transform: scale(0.94); }
+
+  .tw-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    background: var(--color-text-primary);
+    vertical-align: text-bottom;
+    margin-left: 2px;
+    animation: tw-blink 0.8s steps(1) infinite;
+  }
+  @keyframes tw-blink { 50% { opacity: 0; } }
+
+  /* Dev page nav (above-phone control row, only in workbench) */
+  .dev-nav {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    padding: 8px 12px;
+    border-radius: 20px;
+    display: flex;
+    gap: 8px;
+    z-index: 100;
+    font-size: 12px;
+    color: #fff;
+  }
+  .dev-nav button {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .dev-nav button.active { background: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+
+<div class="dev-nav" id="devNav">
+  <span style="opacity:0.7;align-self:center;">jump:</span>
+  <button data-page="1">1</button>
+  <button data-page="2">2</button>
+  <button data-page="3">3</button>
+  <button data-page="4">4</button>
+  <button data-page="5">5</button>
+  <span style="opacity:0.7;align-self:center;margin-left:12px;">|</span>
+  <button id="toggleDebug">Debug</button>
+</div>
+<div class="coord-readout" id="coordReadout">x — / y —</div>
+
+<div class="phone-stage">
+  <div class="ph-ruler ph-ruler--side" id="phRulerSide"></div>
+  <div class="ph-ruler ph-ruler--bottom" id="phRulerBottom"></div>
+
+  <div class="hp-wrap">
+    <div class="ob-rect"></div>
+    <div class="ob-page-label" id="obPageLabel">1 / 5</div>
+
+    <!-- Debug overlays (toggle with body.debug) -->
+    <div class="debug-grid"></div>
+    <div class="debug-grid-major"></div>
+    <svg class="silhouette-overlay" id="silhouetteOverlay" viewBox="0 0 390 884" preserveAspectRatio="none"></svg>
+
+    <div class="ob-text" id="obText"></div>
+    <div class="ob-text-2" id="obText2"></div>
+    <div class="ob-extras" id="obExtras"></div>
+
+    <img class="ob-bill" src="../assets/rig/bill-standing.svg" alt="Bill the vet">
+
+    <div class="ob-strip">
+      <button class="ob-back hidden" id="obBack" aria-label="Back"><span class="ob-chev ob-chev-left"></span></button>
+      <div class="ob-right-cluster">
+        <div class="ob-dots" id="obDots">
+          <div class="ob-dot"></div>
+          <div class="ob-dot"></div>
+          <div class="ob-dot"></div>
+          <div class="ob-dot"></div>
+          <div class="ob-dot"></div>
+        </div>
+        <button class="ob-next icon-only" id="obNext" aria-label="Next"><span class="ob-chev ob-chev-right"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="src/components/rulers.js"></script>
+<script>
+  // ============================================================
+  // Onboarding multi-page prototype
+  // ============================================================
+
+  const TOTAL_PAGES = 5;
+
+  // Per-page configuration. extrasHtml fades in after typewriter completes.
+  // requireInput: if set, Next is gated by the named input being satisfied.
+  const PAGES = [
+    {
+      n: 1,
+      // Each paragraph = one /Para block. 20px gap between paragraphs.
+      paragraphs: [
+        "Hi, I'm Bill, the local vet and I run the Kennel.",
+        "What should I call you?"
+      ],
+      paragraphs2: [
+        "Nice to meet you {name}.",
+        "Now, I believe you are here to foster a dog, I have just the one!",
+        { type: 'frankie' },
+        "A Miniature Schnauzer pup, full of beans and has some attitude."
+      ],
+      extrasHtml: `
+        <div class="ob-name-row">
+          <input class="ob-name-input" type="text" id="obNameInput" placeholder="Your name" maxlength="22" autocomplete="off">
+          <button class="ob-name-submit" id="obNameSubmit" aria-label="Submit name"><span class="ob-chev ob-chev-right"></span></button>
+        </div>`,
+      requireInput: 'name',
+      multiStage: true,
+    },
+    {
+      n: 2,
+      paragraphs: ["This is Frankie. She's a miniature schnauzer pup, full of beans."],
+      extrasHtml: `
+        <div class="ob-frankie-placeholder">
+          <div class="pup-emoji">🐶</div>
+          <div>Frankie</div>
+          <div style="font-size:10px;opacity:0.7;">[asset placeholder]</div>
+        </div>`,
+    },
+    {
+      n: 3,
+      paragraphs: ["Which one matters most to you right now?"],
+      extrasHtml: `
+        <div class="ob-cat-list" id="obCatList">
+          <div class="ob-cat-card body" data-cat="body">
+            <div class="cat-dot"></div>
+            <div class="cat-text">
+              <div class="cat-name">Body</div>
+              <div class="cat-blurb">Movement, food, energy</div>
+            </div>
+          </div>
+          <div class="ob-cat-card mind" data-cat="mind">
+            <div class="cat-dot"></div>
+            <div class="cat-text">
+              <div class="cat-name">Mind</div>
+              <div class="cat-blurb">Focus, calm, learning</div>
+            </div>
+          </div>
+          <div class="ob-cat-card routine" data-cat="routine">
+            <div class="cat-dot"></div>
+            <div class="cat-text">
+              <div class="cat-name">Routine</div>
+              <div class="cat-blurb">Habits, home, life-admin</div>
+            </div>
+          </div>
+        </div>`,
+      requireInput: 'category',
+    },
+    {
+      n: 4,
+      paragraphs: ["A few things to remember:"],
+      extrasHtml: `
+        <div class="ob-bullets">
+          <div class="ob-bullet">You're fostering Frankie for 30 days — not yet adopting.</div>
+          <div class="ob-bullet">Tap a habit to log it. Swipe to explore.</div>
+          <div class="ob-bullet">Pull down anytime to see the Doggytalky feed.</div>
+          <div class="ob-bullet">Notifications keep me in the loop with you.</div>
+        </div>`,
+    },
+    {
+      n: 5,
+      paragraphs: ["Here's a starter kit to get going. I'll pop into the Doggytalky now and then with tips."],
+      extrasHtml: `
+        <div class="ob-starter">
+          <div class="ob-bones-line">
+            <span class="bone">🦴</span>
+            <span>+20</span>
+          </div>
+          <div class="ob-starter-habits">
+            <div style="font-weight:600;font-size:13px;color:var(--color-text-primary);margin-bottom:2px;">Starter habits</div>
+            <div class="h-row body"><span class="h-dot"></span> 10-min walk</div>
+            <div class="h-row mind"><span class="h-dot"></span> Morning quiet minute</div>
+            <div class="h-row routine"><span class="h-dot"></span> Tidy 10 mins</div>
+          </div>
+        </div>`,
+    },
+  ];
+
+  // ----- DOM refs
+  const elText = document.getElementById('obText');
+  const elText2 = document.getElementById('obText2');
+  const elExtras = document.getElementById('obExtras');
+  const elBack = document.getElementById('obBack');
+  const elNext = document.getElementById('obNext');
+  const elPageLabel = document.getElementById('obPageLabel');
+  const elDots = document.getElementById('obDots').querySelectorAll('.ob-dot');
+  const SPEED = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--typewriter-speed-ms')) || 50;
+
+  // ----- State
+  let currentPage = 1;
+  let currentStage = 1;          // for multi-stage pages: which text segment is active
+  let currentParaIdx = 0;        // index into paragraphs array of active stage
+  let currentLineIdx = 0;        // index into the paragraph's pre-broken lines
+  let lineCharIdx = 0;            // char offset within the current line
+  let typingDone = false;
+  let typingTimer = null;
+  let inputs = { name: '', category: null }; // captured user inputs
+
+  const PARA_PAUSE_MS = 250;     // small pause between paragraph types
+
+  // ============================================================
+  // BillWrap — reusable per-line wrap around the character (Bill).
+  // The page template uses this so text never gets covered by Bill.
+  // Designed to map cleanly to SwiftUI (per-line layout array).
+  // Extract to template/bill-wrap.js when this becomes a saved template.
+  // ============================================================
+  const BillWrap = {
+    // Bill's silhouette in phone coords (390 × 884 canvas).
+    // y = vertical position; x = right-edge of Bill's body at that y.
+    // Linear interpolation between adjacent anchors.
+    // Estimates — tunable in workbench.
+    silhouette: {
+      // Measured from bill-standing.svg at display H=486 (anchored bottom-left of phone).
+      // Generated by canvas pixel scan — see comments at the bottom of this file.
+      topY: 398,
+      bottomY: 884,
+      padding: { top: 20, right: 20 },
+      rightEdge: [
+        { y: 398, x: 95  }, { y: 408, x: 113 }, { y: 418, x: 119 }, { y: 428, x: 120 },
+        { y: 438, x: 121 }, { y: 448, x: 118 }, { y: 458, x: 115 }, { y: 468, x: 111 },
+        { y: 478, x: 115 }, { y: 488, x: 135 }, { y: 498, x: 144 }, { y: 508, x: 148 },
+        { y: 518, x: 150 }, { y: 528, x: 152 }, { y: 538, x: 153 }, { y: 548, x: 154 },
+        { y: 558, x: 155 }, { y: 568, x: 158 }, { y: 578, x: 159 }, { y: 588, x: 161 },
+        { y: 598, x: 163 }, { y: 608, x: 161 }, { y: 618, x: 160 }, { y: 628, x: 160 },
+        { y: 638, x: 163 }, { y: 648, x: 161 }, { y: 658, x: 163 }, { y: 668, x: 163 },
+        { y: 678, x: 158 }, { y: 688, x: 140 }, { y: 698, x: 139 }, { y: 708, x: 139 },
+        { y: 718, x: 139 }, { y: 728, x: 138 }, { y: 738, x: 138 }, { y: 748, x: 137 },
+        { y: 758, x: 136 }, { y: 768, x: 136 }, { y: 778, x: 136 }, { y: 788, x: 136 },
+        { y: 798, x: 135 }, { y: 808, x: 135 }, { y: 818, x: 137 }, { y: 828, x: 135 },
+        { y: 838, x: 137 }, { y: 848, x: 142 }, { y: 858, x: 162 }, { y: 868, x: 167 },
+        { y: 878, x: 147 }, { y: 884, x: 155 },
+      ],
+    },
+
+    rightEdgeAt(y) {
+      const e = this.silhouette.rightEdge;
+      if (y <= e[0].y) return e[0].x;
+      if (y >= e[e.length - 1].y) return e[e.length - 1].x;
+      for (let i = 0; i < e.length - 1; i++) {
+        if (y >= e[i].y && y <= e[i + 1].y) {
+          const t = (y - e[i].y) / (e[i + 1].y - e[i].y);
+          return e[i].x + t * (e[i + 1].x - e[i].x);
+        }
+      }
+      return 0;
+    },
+
+    // Indent (px) for a line whose CENTER y sits at yCenterPhone.
+    // Rule: only indent if line center is below Bill's top-breathing threshold.
+    // Above-Bill lines stay full-width even if their line-box dips into the threshold.
+    indentForLineCenterY(yCenterPhone, containerLeftX) {
+      const s = this.silhouette;
+      const topThreshold = s.topY - s.padding.top;
+      if (yCenterPhone < topThreshold) return 0;
+      if (yCenterPhone > s.bottomY) return 0;
+      const billRight = this.rightEdgeAt(yCenterPhone);
+      return Math.max(0, billRight + s.padding.right - containerLeftX);
+    },
+
+    // Greedy line-breaker. Returns [{text, indent, y}] in display order.
+    // Each line's indent is computed from its centre y vs Bill's silhouette.
+    breakIntoLines(text, opts) {
+      const { containerWidth, startY, lineHeight, fontStr, containerLeftX } = opts;
+      this._canvas ||= document.createElement('canvas');
+      const ctx = this._canvas.getContext('2d');
+      ctx.font = fontStr;
+
+      const words = text.trim().split(/\s+/);
+      const lines = [];
+      let currentY = startY;
+      let currentLine = '';
+      const indentFor = (top) => this.indentForLineCenterY(top + lineHeight / 2, containerLeftX);
+      let indent = indentFor(currentY);
+      let avail = containerWidth - indent;
+
+      for (const word of words) {
+        const test = currentLine ? currentLine + ' ' + word : word;
+        const w = ctx.measureText(test).width;
+        if (w <= avail) {
+          currentLine = test;
+        } else {
+          lines.push({ text: currentLine, indent, y: currentY });
+          currentY += lineHeight;
+          indent = indentFor(currentY);
+          avail = containerWidth - indent;
+          currentLine = word;
+        }
+      }
+      if (currentLine) {
+        lines.push({ text: currentLine, indent, y: currentY });
+      }
+      return lines;
+    },
+  };
+
+  // Layout constants — also pulled out for clean iOS migration.
+  const LAYOUT = {
+    OB_TEXT_TOP: 72,
+    OB_TEXT_2_TOP: 256,
+    CONTAINER_WIDTH: 302,
+    CONTAINER_LEFT_X: 44,
+    LINE_HEIGHT: 30.8,             // 22px * 1.4
+    PARA_GAP: 21,                  // CSS margin between paras
+    FRANKIE_HEIGHT: 130,           // Frankie reveal block visual height
+  };
+  const STAGE_FONT = '500 22px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif';
+
+  // ----- Mumble (placeholder — no audio asset yet)
+  function startMumble() {}
+  function stopMumble() {}
+
+  // ----- Typewriter — paragraph-aware
+  //   stage 1 = primary text (elText, populated with <div class="ob-para"> children)
+  //   stage 2 = secondary text (elText2Content, ditto), used by multiStage pages
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  // Each paragraph entry is either a plain HTML string or {type: 'frankie' | 'text', text?: ...}.
+  function paraType(p) {
+    if (typeof p === 'string') return 'text';
+    return (p && p.type) || 'text';
+  }
+  function paraSourceText(p) {
+    if (typeof p === 'string') return p;
+    return (p && p.text) || '';
+  }
+  function plainParaText(p) {
+    // Strip HTML tags, then substitute {name}.
+    const html = paraSourceText(p);
+    const stripped = html.replace(/<[^>]+>/g, '');
+    return stripped.replace('{name}', inputs.name || 'friend');
+  }
+  function activeParaArr() {
+    const cfg = PAGES[currentPage - 1];
+    return currentStage === 2 ? (cfg.paragraphs2 || []) : (cfg.paragraphs || []);
+  }
+  function activeContainer() {
+    return currentStage === 2 ? elText2 : elText;
+  }
+  function activeStageTopY() {
+    return currentStage === 2 ? LAYOUT.OB_TEXT_2_TOP : LAYOUT.OB_TEXT_TOP;
+  }
+
+  // Per-stage line layout: paragraphLines[paraIdx] = [{text, indent, y}, ...].
+  // Frankie paragraphs have an empty lines array; their centering pad lives in frankiePads.
+  let paragraphLines = [];
+  let frankiePads = {};   // paraIdx -> padding-left in container coords
+
+  function precomputeLines() {
+    paragraphLines = [];
+    frankiePads = {};
+    const paras = activeParaArr();
+    let runningY = activeStageTopY();
+    paras.forEach((p, i) => {
+      if (i > 0) runningY += LAYOUT.PARA_GAP;
+      if (paraType(p) === 'frankie') {
+        paragraphLines.push([]);
+        // Centre Frankie horizontally between (Bill's right + padding) and cream right edge.
+        // Find max Bill silhouette right across the Frankie block's y range so the
+        // figure clears Bill at every y it occupies.
+        let maxR = 0;
+        for (let y = runningY; y <= runningY + LAYOUT.FRANKIE_HEIGHT; y += 5) {
+          const r = BillWrap.rightEdgeAt(y);
+          if (r > maxR) maxR = r;
+        }
+        const padLeft = Math.max(
+          0,
+          maxR + BillWrap.silhouette.padding.right - LAYOUT.CONTAINER_LEFT_X
+        );
+        frankiePads[i] = padLeft;
+        runningY += LAYOUT.FRANKIE_HEIGHT;
+        return;
+      }
+      const lines = BillWrap.breakIntoLines(plainParaText(p), {
+        containerWidth: LAYOUT.CONTAINER_WIDTH,
+        startY: runningY,
+        lineHeight: LAYOUT.LINE_HEIGHT,
+        fontStr: STAGE_FONT,
+        containerLeftX: LAYOUT.CONTAINER_LEFT_X,
+      });
+      paragraphLines.push(lines);
+      runningY += lines.length * LAYOUT.LINE_HEIGHT;
+    });
+  }
+
+  function buildParagraphSkeletons() {
+    precomputeLines();
+    const paras = activeParaArr();
+    activeContainer().innerHTML = paras.map((p, i) => {
+      if (paraType(p) === 'frankie') {
+        const pad = frankiePads[i] || 0;
+        return `<div class="ob-para ob-frankie-line" data-p-idx="${i}" style="padding-left:${pad}px"></div>`;
+      }
+      const lines = paragraphLines[i] || [];
+      const lineHtml = lines.map((l, j) =>
+        `<div class="ob-line" data-line="${j}" style="margin-left:${l.indent}px"></div>`
+      ).join('');
+      return `<div class="ob-para" data-p-idx="${i}">${lineHtml}</div>`;
+    }).join('');
+  }
+
+  function setLineTyped(paraIdx, lineIdx, text, withCursor) {
+    const para = activeContainer().querySelector(`[data-p-idx="${paraIdx}"]`);
+    if (!para) return;
+    const line = para.querySelector(`[data-line="${lineIdx}"]`);
+    if (!line) return;
+    const cursor = withCursor ? '<span class="tw-cursor"></span>' : '';
+    line.innerHTML = escapeHtml(text) + cursor;
+  }
+
+  function setParaFinal(paraIdx) {
+    const lines = paragraphLines[paraIdx] || [];
+    lines.forEach((l, j) => setLineTyped(paraIdx, j, l.text, false));
+  }
+  function renderFrankieReveal(paraIdx) {
+    const para = activeContainer().querySelector(`[data-p-idx="${paraIdx}"]`);
+    if (!para) return;
+    para.innerHTML = `
+      <span class="ob-frankie-fig">
+        <img class="ob-frankie-img" src="../assets/rig/frankie-head-mouth-open.svg" alt="Frankie">
+      </span>
+      <span class="ob-frankie-name">Frankie</span>`;
+    requestAnimationFrame(() => {
+      const fig = para.querySelector('.ob-frankie-fig');
+      const name = para.querySelector('.ob-frankie-name');
+      if (fig) fig.classList.add('revealed');
+      if (name) name.classList.add('revealed');
+    });
+  }
+  function finishTyping() {
+    if (typingDone) return;
+    typingDone = true;
+    if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+    // Render every paragraph fully (Frankie reveal + plain-text lines).
+    const paras = activeParaArr();
+    paras.forEach((p, i) => {
+      if (paraType(p) === 'frankie') renderFrankieReveal(i);
+      else setParaFinal(i);
+    });
+    stopMumble();
+    if (currentStage === 1) {
+      setTimeout(() => {
+        elExtras.classList.add('visible');
+        hookExtras();
+        updateNextEnabled();
+        updateInlineSubmitEnabled();
+      }, 120);
+    } else {
+      updateNextEnabled();
+    }
+  }
+
+  function tick() {
+    if (typingDone) return;
+    const paras = activeParaArr();
+    if (!paras.length) { finishTyping(); return; }
+    const cur = paras[currentParaIdx];
+
+    if (paraType(cur) === 'frankie') {
+      renderFrankieReveal(currentParaIdx);
+      currentParaIdx++;
+      currentLineIdx = 0;
+      lineCharIdx = 0;
+      if (currentParaIdx < paras.length) {
+        typingTimer = setTimeout(tick, 700);
+      } else {
+        finishTyping();
+      }
+      return;
+    }
+
+    const lines = paragraphLines[currentParaIdx] || [];
+    if (currentLineIdx >= lines.length) {
+      // Paragraph complete; advance.
+      currentParaIdx++;
+      currentLineIdx = 0;
+      lineCharIdx = 0;
+      if (currentParaIdx < paras.length) {
+        typingTimer = setTimeout(tick, PARA_PAUSE_MS);
+      } else {
+        finishTyping();
+      }
+      return;
+    }
+
+    const line = lines[currentLineIdx];
+    if (lineCharIdx <= line.text.length) {
+      setLineTyped(currentParaIdx, currentLineIdx, line.text.substring(0, lineCharIdx), true);
+      lineCharIdx++;
+      typingTimer = setTimeout(tick, SPEED);
+    } else {
+      // Line complete; drop cursor and advance to next line.
+      setLineTyped(currentParaIdx, currentLineIdx, line.text, false);
+      currentLineIdx++;
+      lineCharIdx = 0;
+      typingTimer = setTimeout(tick, SPEED);
+    }
+  }
+
+  function startStage(stage) {
+    currentStage = stage;
+    currentParaIdx = 0;
+    currentLineIdx = 0;
+    lineCharIdx = 0;
+    typingDone = false;
+    if (typingTimer) clearTimeout(typingTimer);
+    if (stage === 2) {
+      elText2.classList.add('visible');
+      buildParagraphSkeletons();
+      // Bottom Next disables until typing completes again; inline submit stays
+      // available so the user can re-submit with a corrected name.
+      elNext.classList.remove('enabled');
+      updateInlineSubmitEnabled();
+    }
+    startMumble();
+    tick();
+  }
+
+  // ----- Per-page extras wiring
+  function hookExtras() {
+    const cfg = PAGES[currentPage - 1];
+    if (cfg.requireInput === 'name') {
+      const input = document.getElementById('obNameInput');
+      const submit = document.getElementById('obNameSubmit');
+      if (input) {
+        input.value = inputs.name || '';
+        input.addEventListener('input', () => {
+          inputs.name = input.value.trim();
+          updateInlineSubmitEnabled();
+        });
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && submit && submit.classList.contains('enabled')) {
+            submit.click();
+          }
+        });
+      }
+      if (submit) {
+        submit.addEventListener('click', () => {
+          if (!submit.classList.contains('enabled')) return;
+          startStage(2);
+        });
+      }
+    } else if (cfg.requireInput === 'category') {
+      const cards = document.querySelectorAll('.ob-cat-card');
+      cards.forEach(card => {
+        if (card.dataset.cat === inputs.category) card.classList.add('selected');
+        card.addEventListener('click', () => {
+          cards.forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          inputs.category = card.dataset.cat;
+          updateNextEnabled();
+        });
+      });
+    }
+  }
+
+  function updateNextEnabled() {
+    if (!typingDone) { elNext.classList.remove('enabled'); return; }
+    const cfg = PAGES[currentPage - 1];
+    // Multi-stage page: bottom Next is gated by stage 2 typing completion.
+    // The inline submit button on stage 1 is what triggers the stage transition.
+    if (cfg.multiStage && currentStage === 1) {
+      elNext.classList.remove('enabled');
+      return;
+    }
+    let ok = true;
+    if (cfg.requireInput === 'category') ok = !!inputs.category;
+    if (ok) elNext.classList.add('enabled'); else elNext.classList.remove('enabled');
+  }
+
+  function updateInlineSubmitEnabled() {
+    const submit = document.getElementById('obNameSubmit');
+    if (!submit) return;
+    // Stays available across stages — user can re-submit with an updated name to re-run stage 2.
+    const ok = !!inputs.name && inputs.name.length > 0;
+    submit.classList.toggle('enabled', ok);
+  }
+
+  // ----- Page navigation
+  function gotoPage(n) {
+    if (n < 1 || n > TOTAL_PAGES) return;
+    currentPage = n;
+    currentStage = 1;
+    currentParaIdx = 0;
+    currentLineIdx = 0;
+    lineCharIdx = 0;
+
+    // Reset state
+    typingDone = false;
+    if (typingTimer) clearTimeout(typingTimer);
+
+    // UI updates
+    elPageLabel.textContent = `${n} / ${TOTAL_PAGES}`;
+    elDots.forEach((d, i) => d.classList.toggle('active', i < n));
+    elBack.classList.toggle('hidden', n === 1);
+
+    // Next button label / shape
+    elNext.classList.remove('cta', 'icon-only', 'enabled');
+    if (n === TOTAL_PAGES) {
+      elNext.classList.add('cta');
+      elNext.textContent = 'Get Started';
+    } else {
+      elNext.classList.add('icon-only');
+      elNext.innerHTML = '<span class="ob-chev ob-chev-right"></span>';
+    }
+
+    // Reset content
+    elText.innerHTML = '';
+    elText2.innerHTML = '';
+    elText2.classList.remove('visible');
+    elExtras.classList.remove('visible');
+    const cfg = PAGES[n - 1];
+    elExtras.innerHTML = cfg.extrasHtml || '';
+
+    // Build stage-1 paragraph skeletons
+    buildParagraphSkeletons();
+
+    // Update dev-nav active button
+    document.querySelectorAll('#devNav button').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.page) === n);
+    });
+
+    // Start typewriter (stage 1)
+    startMumble();
+    tick();
+  }
+
+  // ----- Tap to skip typing (anywhere on phone except interactive controls)
+  document.querySelector('.hp-wrap').addEventListener('click', (e) => {
+    if (typingDone) return;
+    if (e.target.closest('.ob-next, .ob-back, .ob-name-submit, input, .ob-cat-card')) return;
+    finishTyping();
+  });
+
+  // ----- Next / Back
+  elNext.addEventListener('click', () => {
+    if (!elNext.classList.contains('enabled')) return;
+    const cfg = PAGES[currentPage - 1];
+    // Multi-stage page: first Next press triggers stage 2 instead of advancing
+    if (cfg.multiStage && currentStage === 1) {
+      // Hide input/extras for stage 2 (input has served its purpose)
+      // Keep input visible so the captured name remains on screen.
+      startStage(2);
+      return;
+    }
+    if (currentPage < TOTAL_PAGES) gotoPage(currentPage + 1);
+    else console.log('Onboarding complete. Captured:', inputs);
+  });
+  elBack.addEventListener('click', () => {
+    if (currentPage > 1) gotoPage(currentPage - 1);
+  });
+
+  // ----- Dev nav (workbench only)
+  document.querySelectorAll('#devNav button').forEach(btn => {
+    btn.addEventListener('click', () => gotoPage(parseInt(btn.dataset.page)));
+  });
+
+  // ----- Debug overlay: visualise BillWrap silhouette + padding line
+  function drawSilhouetteOverlay() {
+    const svg = document.getElementById('silhouetteOverlay');
+    if (!svg) return;
+    const e = BillWrap.silhouette.rightEdge;
+    const padR = BillWrap.silhouette.padding.right;
+    // Raw silhouette points (red, dashed)
+    const pts = e.map(p => `${p.x},${p.y}`).join(' ');
+    // Padded wrap edge (yellow, solid) = silhouette + padding
+    const padded = e.map(p => `${p.x + padR},${p.y}`).join(' ');
+    // Mark each anchor with a small circle + label
+    const anchors = e.map(p => `
+      <circle cx="${p.x}" cy="${p.y}" r="2" fill="#ff3c3c"/>
+      <text x="${p.x + 4}" y="${p.y + 3}" font-size="9" fill="#ff3c3c" font-family="monospace">y${p.y} x${p.x}</text>
+    `).join('');
+    svg.innerHTML = `
+      <polyline points="${pts}" fill="none" stroke="#ff3c3c" stroke-width="1" stroke-dasharray="3,2" opacity="0.85"/>
+      <polyline points="${padded}" fill="none" stroke="#ffd400" stroke-width="1.5" opacity="0.85"/>
+      ${anchors}
+      <line x1="0" y1="${BillWrap.silhouette.topY - BillWrap.silhouette.padding.top}" x2="390" y2="${BillWrap.silhouette.topY - BillWrap.silhouette.padding.top}" stroke="#ffd400" stroke-width="1" opacity="0.6" stroke-dasharray="4,4"/>
+    `;
+  }
+
+  // ----- Debug toggle + mouse coord readout
+  const elCoord = document.getElementById('coordReadout');
+  document.getElementById('toggleDebug').addEventListener('click', () => {
+    document.body.classList.toggle('debug');
+    if (document.body.classList.contains('debug')) drawSilhouetteOverlay();
+  });
+  document.querySelector('.hp-wrap').addEventListener('mousemove', (e) => {
+    if (!document.body.classList.contains('debug')) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+    elCoord.textContent = `x${x} / y${y}`;
+  });
+
+  // ----- Boot
+  gotoPage(1);
+</script>
+</body>
+</html>

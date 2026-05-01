@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<!--
+============================================================================
+ extract-silhouette.html — silhouette anchor table generator
+============================================================================
+ Companion to character-page.html. Use this when:
+   - You add a new character (new SVG)
+   - You change Bill's pose (different SVG)
+   - You change Bill's display height
+   - The wrap is misbehaving and you want to re-measure ground truth
+
+ What it does:
+   Loads a character SVG, draws it to a canvas at the target display size
+   anchored bottom-left of the phone, then for each Y row finds the
+   rightmost opaque pixel. Outputs a JS array ready to paste into
+   `BillWrap.silhouette.rightEdge` in the character page template.
+
+ How to use:
+   1. Open this file by double-clicking (file:// works) OR via puppeteer
+      with --allow-file-access-from-files (Chromium can be picky).
+   2. Edit the INPUTS at the top of the script: svgPath, displayHeight,
+      phoneHeight (so the Y values come out in phone coords).
+   3. Click "Extract".
+   4. Copy the JSON output and paste into the BillWrap silhouette config.
+   5. Optionally tune the `padding` field (start at 20, can go to ~30).
+
+ Notes:
+   - Sample step is 10 px by default. Tighter sampling (5 px) gives smoother
+     wrap; coarser (20 px) is faster but choppy near sharp transitions
+     (ears, boots, dangling stethoscope).
+   - The alpha threshold (50 / 255) tolerates anti-aliased edges. Increase
+     to ignore faint edges; decrease to grab them.
+============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Silhouette Extractor</title>
+<style>
+  body {
+    margin: 0;
+    background: #1a1a1a;
+    color: #eee;
+    font-family: -apple-system, "SF Mono", monospace;
+    padding: 24px;
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .panel {
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 16px;
+    flex: 1;
+    min-width: 320px;
+  }
+  h2 { margin: 0 0 12px; font-size: 14px; color: #ffd; }
+  label { display: block; margin: 8px 0 4px; font-size: 12px; opacity: 0.8; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    background: #1a1a1a;
+    color: #eee;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  button {
+    margin-top: 12px;
+    background: #687a89;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:active { transform: scale(0.97); }
+  .preview-stage {
+    position: relative;
+    background: #fff;
+    width: 390px;
+    height: 884px;
+    overflow: hidden;
+    border: 1px solid #444;
+  }
+  .preview-stage img {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: auto;
+  }
+  .preview-stage svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  textarea {
+    width: 100%;
+    height: 360px;
+    background: #1a1a1a;
+    color: #eee;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  .meta { font-size: 11px; opacity: 0.6; margin-top: 8px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h2>Inputs</h2>
+  <label>SVG path (relative to this file)</label>
+  <input type="text" id="svgPath" value="../../assets/rig/bill-standing.svg">
+
+  <label>Display height (px) — how tall the character renders on the phone</label>
+  <input type="number" id="displayH" value="486">
+
+  <label>Phone height (px) — for converting to phone Y coords (character is bottom-anchored)</label>
+  <input type="number" id="phoneH" value="884">
+
+  <label>Sample step (px) — Y interval between anchors</label>
+  <input type="number" id="step" value="10">
+
+  <label>Alpha threshold (0–255)</label>
+  <input type="number" id="alphaThr" value="50">
+
+  <button id="extractBtn">Extract silhouette</button>
+
+  <h2 style="margin-top:24px;">Output (paste into BillWrap.silhouette.rightEdge)</h2>
+  <textarea id="output" readonly placeholder="(extract first)"></textarea>
+  <div class="meta" id="meta"></div>
+</div>
+
+<div class="panel" style="flex:0 0 430px;">
+  <h2>Preview</h2>
+  <div class="preview-stage" id="stage">
+    <img id="charImg" alt="character">
+    <svg id="overlay" viewBox="0 0 390 884" preserveAspectRatio="none">
+      <polyline id="silLine" points="" fill="none" stroke="#ff3c3c" stroke-width="1.5" stroke-dasharray="3,2"/>
+    </svg>
+  </div>
+  <div class="meta">Red dashed line = scanned silhouette right edge.</div>
+</div>
+
+<script>
+function extract() {
+  const svgPath = document.getElementById('svgPath').value;
+  const displayH = parseInt(document.getElementById('displayH').value, 10);
+  const phoneH = parseInt(document.getElementById('phoneH').value, 10);
+  const step = parseInt(document.getElementById('step').value, 10);
+  const alphaThr = parseInt(document.getElementById('alphaThr').value, 10);
+
+  const img = document.getElementById('charImg');
+  img.onload = () => {
+    img.style.height = displayH + 'px';
+    const ar = img.naturalWidth / img.naturalHeight;
+    const w = Math.round(displayH * ar);
+    const h = displayH;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    try {
+      ctx.drawImage(img, 0, 0, w, h);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      const phoneTopY = phoneH - h;
+      const anchors = [];
+      for (let y = 0; y < h; y += step) {
+        let rightX = -1;
+        for (let x = w - 1; x >= 0; x--) {
+          const a = data[(y * w + x) * 4 + 3];
+          if (a > alphaThr) { rightX = x; break; }
+        }
+        if (rightX > 0) anchors.push({ y: phoneTopY + y, x: rightX });
+      }
+
+      // Format JSON nicely (one anchor per line, 4 per group)
+      const lines = [];
+      for (let i = 0; i < anchors.length; i += 4) {
+        const group = anchors.slice(i, i + 4)
+          .map(a => `{ y: ${a.y}, x: ${String(a.x).padStart(3)} }`)
+          .join(', ');
+        lines.push('  ' + group + ',');
+      }
+      document.getElementById('output').value = '[\n' + lines.join('\n') + '\n]';
+
+      // Update preview overlay
+      const pts = anchors.map(a => `${a.x},${a.y}`).join(' ');
+      document.getElementById('silLine').setAttribute('points', pts);
+
+      document.getElementById('meta').textContent =
+        `Display: ${w}×${h} px • Source: ${img.naturalWidth}×${img.naturalHeight} • ${anchors.length} anchors at ${step}px step`;
+    } catch (e) {
+      document.getElementById('output').value = 'ERROR: ' + e.message +
+        '\n\nIf the canvas is tainted, launch Chromium with --allow-file-access-from-files,\n' +
+        'or serve the workbench over a local HTTP server (python3 -m http.server).';
+      document.getElementById('meta').textContent = '';
+    }
+  };
+  img.onerror = () => {
+    document.getElementById('output').value = 'ERROR: image failed to load: ' + svgPath;
+  };
+  img.src = svgPath + '?cache-bust=' + Date.now();
+}
+
+document.getElementById('extractBtn').addEventListener('click', extract);
+// Auto-run on load
+window.addEventListener('load', extract);
+</script>
+</body>
+</html>
