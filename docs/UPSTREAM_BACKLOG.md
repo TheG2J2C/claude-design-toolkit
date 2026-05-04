@@ -107,3 +107,93 @@ Already partly in `templates/project-design-command.md`. Could split into a sibl
 ## Shipped
 
 (Empty — first version of this file, 2026-04-29.)
+
+---
+
+## From Frankie session — 2026-05-04 evening (Batch C — full ecosystem audit + repo consolidation)
+
+### [ ] 9. CRITICAL_CANON.md pattern (template) — HIGH
+
+Always-load canonical-terminology translator. Solves the "memsearch surfaces old/deprecated terms" problem. Every project drifts terminology over time (e.g., Frankie: breeder → Bill the Vet, Vitality → Routine).
+
+**Where it lands:** `templates/CRITICAL_CANON.md` (template with frontmatter + sections: Character canon, Category canon, Naming canon, Doc hierarchy, Memsearch deprecation rule).
+
+**Hooks needed:** `templates/project-design-command.md` should auto-load CRITICAL_CANON.md as part of session-start context. Universal session-start hook (`~/.claude/hooks/session-start.sh`) needs upstream too.
+
+**Source:** `~/Documents/2nd_Brain/2nd_Brain/B_Claude/3_Projects/Frankie/CRITICAL_CANON.md`
+
+---
+
+### [ ] 10. Hub note + alias + MOC pattern (templates) — HIGH
+
+Wikilink-aliased entity hubs serving as graph-view centroids. Each hub has frontmatter `aliases: [variant terms]` so backlinks gather all variants. MOC (Map of Content) is the project-level entry point linking all hubs.
+
+**Where it lands:**
+- `templates/Hub_<entity>.md` (template)
+- `templates/MOC_<project>.md` (template)
+- `templates/HUB_NOTE_PATTERN.md` documentation
+
+**Source:** `~/Documents/2nd_Brain/2nd_Brain/B_Claude/3_Projects/Frankie/Frankie Config/Hubs/` (11 examples — Bill, Frankie, Irene, Habits, MoodSystem, BoneEconomy, StrikeLadder, Training, Onboarding, WalkieTalkie, MOC_Frankie)
+
+**Why it matters:** Without hub notes, knowledge-graph queries hit fragmented refs across many notes. Bill in habit-panel.md, Bill in voices.md, Bill in onboarding.md → no canonical Bill page. Hub note + aliases unifies.
+
+---
+
+### [ ] 11. Plan_pending-followups.md pattern (template) — HIGH
+
+Consolidated tracker for every "until X happens" / "deferred" / "next session" commitment. Stops promises scattering across daily memory files where they get lost.
+
+**Where it lands:** `templates/Plan_pending-followups.md` with sections: §A auto-mode-blocked safety, §B time-sensitive decisions, §C build phase triggers, §D upstream queue pointer, §E open gap-analysis questions, §F design backlog, §G cross-section dependencies, §H stale items.
+
+**Source:** `~/Documents/2nd_Brain/2nd_Brain/B_Claude/3_Projects/Frankie/Frankie Config/2_Plans/Plan_pending-followups.md`
+
+---
+
+### [ ] 12. Lint-ecosystem script pattern — MEDIUM
+
+9-section health check: MCP connectivity, Smart Connections index health (orphan/dup embeddings, folder exclusions), Obsidian IndexedDB stale paths, repo state (required files, no stale path refs), auto-memory (file count, age), hub-note coverage, CRITICAL_CANON freshness, pending-followup deadlines, hook executability.
+
+**Where it lands:** `templates/lint-ecosystem.sh` + `templates/Doc_lint.md` (when to run, how to extend).
+
+**Source:** `~/.claude/scripts/lint-frankie-ecosystem.sh`
+
+---
+
+### [ ] 13. Task assignee convention — MEDIUM
+
+`👤 Gareth` / `🤖 Claude` emoji prefix on every `- [ ]` task. Distinguishes user-actionable from agent-actionable at a glance.
+
+**Where it lands:** `templates/Doc_task-conventions.md`. Update `templates/DOC_STRUCTURE.md` to mention the convention.
+
+**Source:** `~/Documents/2nd_Brain/2nd_Brain/B_Claude/2_Config/13_Reference-Docs/Doc_task-conventions.md`
+
+---
+
+### [ ] 14. Tilde-folder MCP gotcha — LOW (but easy)
+
+Document: MCP server `DATA_DIR` and similar path env vars must use absolute paths, NOT `~/mcp-data/...`. Tilde isn't expanded by MCP servers; literal `~/mcp-data` directories get created in cwd, leading to recursive `cwd/~/mcp-data/~/mcp-data/...` mess.
+
+**Where it lands:** Add a "MCP gotchas" section to `plugins/design-core/SKILL.md` or a new `templates/MCP_SETUP_GOTCHAS.md`.
+
+**Fix that worked:** Change `~/mcp-data/...` → `/Users/<username>/mcp-data/...` (absolute).
+
+---
+
+### [ ] 15. Single-repo-per-scope (vault content INSIDE repo) — MEDIUM
+
+Architectural pattern: when a project has BOTH a code repo AND vault knowledge graph content, the vault content moves INTO the repo as a `vault/` subfolder. Symlink at `<vault>/B_Claude/3_Projects/<name>/` → `<repo>/vault/`. Single git history covers both.
+
+**Where it lands:** `templates/CONSOLIDATION_PATTERN.md` documenting the migration steps + when to use it (vs separate vault folder).
+
+**Source:** Frankie consolidation 2026-05-04 (commits f805ba4, 038260c).
+
+---
+
+### [ ] 16. AskUserQuestion default — LOW (rule, not template)
+
+Universal communication rule: always use the `AskUserQuestion` tool for decisions, never plain-text prompts. Provide background then options with descriptions.
+
+**Where it lands:** Append to `plugins/design-core/SKILL.md` design-edit / design-verify communication-protocol sections. Update `templates/project-design-command.md` Step 1 to mention.
+
+**Source:** `~/.claude/projects/-Users-garethcook-projects-Frankie/memory/feedback_interactive_questions.md`
+
