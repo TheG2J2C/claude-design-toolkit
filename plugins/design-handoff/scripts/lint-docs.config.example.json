@@ -1,0 +1,22 @@
+{
+  "//": "Project-specific lint config for lint-docs.js. Copy to tools/lint-docs.config.json and customise per project. Universal rules (forbidden historical-language phrases) are baked into lint-docs.js — this file adds project-specific rules.",
+
+  "forbidden_phrases": [
+    {
+      "//": "Banned terminology — product framing rules unique to your project.",
+      "pattern": "\\bfree[\\s-]+trial\\b",
+      "msg": "banned terminology 'free trial' (see your project's universal product rules ADR)"
+    },
+    {
+      "//": "Deprecated category / character / item names (after a rename).",
+      "pattern": "\\boldname\\b",
+      "msg": "deprecated name 'oldname' — use new-name"
+    },
+    {
+      "//": "Old file slug after rename. Set allowInBreadcrumb: true if breadcrumbs about the rename should NOT trigger.",
+      "pattern": "\\bold-slug\\b",
+      "msg": "old slug 'old-slug' — use new-slug",
+      "allowInBreadcrumb": true
+    }
+  ]
+}

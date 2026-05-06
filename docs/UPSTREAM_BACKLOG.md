@@ -4,6 +4,54 @@
 
 ---
 
+## From Frankie session — 2026-05-06 (doc-overhaul methodology) — SHIPPED
+
+The full audit-driven / ADR-canonical / lint-enforced documentation methodology, born out of the Frankie 2026-05-06 doc-overhaul after multiple drift incidents. Generic — applies to any spec-driven design project.
+
+### [x] DS-1. `lint-docs.js` — full enforcement tool — `plugins/design-handoff/scripts/lint-docs.js`
+
+Single Node script with 10 rule families. Universal rules baked in (forbidden historical-language phrases, frontmatter integrity, cross-ref integrity, ios-freshness, spec-completeness, design-handover-index-matches, changelog-coverage, audit-folder-staleness, adr-related-specs-bidirectional). Project-specific rules (banned terminology, deprecated names, old slugs) loaded from optional `tools/lint-docs.config.json`. Inline `<!-- lint-allow: <reason> -->` exemption directive.
+
+### [x] DS-2. Pre-commit hook template — `plugins/design-handoff/scripts/pre-commit.sh`
+
+Drop-in for any project using the methodology. Calls `lint-docs.js --quiet` only when staged changes touch docs. Blocks commit on errors. Customise `PROJECT_ROOT_RELATIVE` for repos where design content lives in a subdirectory (consolidated-vault projects).
+
+### [x] DS-3. ADR template — `plugins/design-core/templates/ADR-template.md`
+
+MADR-format template with frontmatter for `cross_cutting:`, `supersedes:`, `superseded_by:`, `related_specs:`. Includes template usage notes (numbering rules, slug-match rule, status flow, pointer pattern). Cross-cutting flag distinguishes ADRs that capture rules-applied-to-many-specs from ADRs that lock a single component.
+
+### [x] DS-4. Decision-register README template — `plugins/design-core/templates/decisions-README.md`
+
+Template for `docs/decisions/README.md` — the ADR registry index. Documents the one-topic-per-ADR rule, naming rule (one-name-everywhere), pointer pattern, status workflow, ADR numbering convention.
+
+### [x] DS-5. End-design-session command template — `plugins/design-handoff/commands/end-design-session.md`
+
+Generic 14-step session-end protocol. Adapt the slash command name (`/end-<project>-design`) per project. Steps include: workbench checkpoints, drift checks, decision register update (ADR drafting + supersede chain), CHANGELOG update, cross-ref propagation check, index consistency, memory pointer-stub policy, vault session capture, lint pass (BLOCKS exit on errors), toolkit upstream review, git commit.
+
+### [x] DS-6. DOC_STRATEGY methodology doc — `plugins/design-core/templates/DOC_STRATEGY.md`
+
+The full 16-section methodology document, generic / cross-project. Covers: doc surface taxonomy, folder structure template, naming conventions, process flow, locks + history (supersede chain), the 8 protocols (P-1..P-8) for different change types, commands + hooks, tooling, backup strategy, archive strategy, memory tools scope (Smart Connections / memsearch / auto-memory), end-to-end example, anti-patterns, adoption checklist.
+
+### [x] DS-7. Configurable lint via `lint-docs.config.json` example — `plugins/design-handoff/scripts/lint-docs.config.example.json`
+
+Project-specific lint rules (banned terminology, deprecated names, old slugs after rename) live in this optional config file. Universal rules stay in lint-docs.js.
+
+### Adoption notes
+
+To adopt this methodology in a new project:
+
+1. Copy `lint-docs.js` → `tools/lint-docs.js`
+2. (Optional) Copy `lint-docs.config.example.json` → `tools/lint-docs.config.json` and customise
+3. Copy `pre-commit.sh` → `.git/hooks/pre-commit`; `chmod +x`
+4. Copy `ADR-template.md` → `docs/decisions/_template.md`
+5. Copy `decisions-README.md` → `docs/decisions/README.md`; populate the index table
+6. Copy / link `DOC_STRATEGY.md` into the project (vault location: `B_Claude/2_Config/Doc_design-doc-strategy.md`)
+7. Update project's `/<project>-Design.md` and `/end-<project>-design.md` to reference `lint-docs.js` + the new method
+
+Proven on Frankie (2026-05-06 commit `42b33ad`); methodology is self-policing once installed.
+
+---
+
 ## From Frankie session — 2026-04-29 (toolkit + doc + workbench restructure)
 
 ### [ ] 1. Build script template (`templates/build.js`) — HIGH
